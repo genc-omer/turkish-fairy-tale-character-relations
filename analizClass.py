@@ -94,6 +94,20 @@ class MetinAnaliz:
             return None
         return doc[-1].lemma_.lower()
 
+    def _iyelik_sahibi_mi(self, single_word, phrase, head_word):
+        """Over-merge düzeltmesi (P1 — iyelik yutması).
+        'X'in Y' iyelik tamlamasında tek-kelime sahip (X), baş kelime (Y) DEĞİLSE
+        ayrı bir varlıktır. Örn: 'hansel' ∈ 'hansel gretel'in babası' ama hansel
+        SAHİP, baba BAŞ → hansel'i baba grubuna yutturma. Apozisyonda ('ali çoban'
+        ⊇ 'ali') genitive işareti YOKTUR → False döner, mevcut davranış korunur."""
+        toks = phrase.split()
+        gen = re.compile(r"'(in|ın|un|ün|nin|nın|nun|nün)$", re.IGNORECASE)
+        if not any(gen.search(t) for t in toks):
+            return False
+        if single_word == head_word or single_word == toks[-1]:
+            return False  # tek-kelime baş kelimenin kendisi → aynı varlık, yut
+        return True
+
     def should_add_to_group(self, modifier, group_modifier):
         return self.is_sublist_or_subset(modifier, group_modifier) or self.is_sublist_or_subset(group_modifier, modifier)
 
@@ -145,9 +159,10 @@ class MetinAnaliz:
             character2 = group2["karakter"]
             head_word_2 = self.get_head_word(character2)
 
-            if character1 in character2.split():
+            if character1 in character2.split() and not self._iyelik_sahibi_mi(character1, character2, head_word_2):
                 dd=1
                 # Tek kelimelik karakter, diğer karakterin içinde geçiyor
+                # (P1 guard: iyelik tamlamasında sahip-tarafı yutma engellendi)
                 matched_characters.append((j, character2, character_count.get(character2, 0)))
             else:
                 # Çekirdek kelimeler benziyorsa
