@@ -1,0 +1,18 @@
+{
+  "story": "kagit",
+  "text_file": "kagit.txt",
+  "characters": ["Alex", "Büyükanne", "Kağıt Prenses", "Bay Pilot", "Pembe Cadı"],
+  "main_characters": ["Alex", "Kağıt Prenses"],
+  "char_spans": {
+    "Kağıt Prenses": ["Kağıt Prenses", "Prenses Zayna"],
+    "Büyükanne": ["büyükanne", "büyükannesi", "keşiş"]
+  },
+  "relations": [
+    {"from": "Alex", "to": "Büyükanne", "type": "pozitif"},
+    {"from": "Alex", "to": "Kağıt Prenses", "type": "pozitif"},
+    {"from": "Alex", "to": "Bay Pilot", "type": "pozitif"},
+    {"from": "Kağıt Prenses", "to": "Bay Pilot", "type": "pozitif"},
+    {"from": "Kağıt Prenses", "to": "Büyükanne", "type": "pozitif"},
+    {"from": "Kağıt Prenses", "to": "Pembe Cadı", "type": "negatif"}
+  ]
+}

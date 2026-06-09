@@ -1,0 +1,24 @@
+{
+  "story": "uyuyanguzel2",
+  "text_file": "uyuyanguzel2.txt",
+  "characters": ["Prenses", "Kral", "Kraliçe", "Yaşlı Peri", "Genç Peri", "Yaşlı Kadın", "Prens"],
+  "main_characters": ["Prenses", "Prens"],
+  "char_spans": {
+    "Genç Peri": ["genç akıllı peri", "iyi peri", "en genç peri", "yakındaki genç bir peri"],
+    "Yaşlı Peri": ["davet edilmemiş yaşlı bir peri"],
+    "Prens": ["kralın oğlu"],
+    "Yaşlı Kadın": ["sağır kadın"]
+  },
+  "relations": [
+    {"from": "Kral", "to": "Kraliçe", "type": "pozitif"},
+    {"from": "Kral", "to": "Prenses", "type": "pozitif"},
+    {"from": "Kraliçe", "to": "Prenses", "type": "pozitif"},
+    {"from": "Kral", "to": "Yaşlı Peri", "type": "negatif"},
+    {"from": "Kral", "to": "Genç Peri", "type": "pozitif"},
+    {"from": "Kraliçe", "to": "Genç Peri", "type": "pozitif"},
+    {"from": "Yaşlı Peri", "to": "Prenses", "type": "negatif"},
+    {"from": "Genç Peri", "to": "Prenses", "type": "pozitif"},
+    {"from": "Prenses", "to": "Yaşlı Kadın", "type": "notr"},
+    {"from": "Prenses", "to": "Prens", "type": "pozitif"}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "story": "habilkabil",
+  "text_file": "habilkabil.txt",
+  "characters": ["Adem", "Havva", "Kabil", "Habil", "Şeytan"],
+  "main_characters": ["Kabil", "Habil"],
+  "relations": [
+    {"from": "Adem", "to": "Havva", "type": "pozitif"},
+    {"from": "Adem", "to": "Habil", "type": "pozitif"},
+    {"from": "Adem", "to": "Kabil", "type": "negatif"},
+    {"from": "Kabil", "to": "Habil", "type": "negatif"},
+    {"from": "Şeytan", "to": "Kabil", "type": "negatif"}
+  ]
+}

@@ -1,0 +1,21 @@
+{
+  "story": "pinokyoV",
+  "text_file": "pinokyoV.txt",
+  "characters": ["Pinokyo", "Gepetto", "Mavi Peri", "Çekirge", "Kuklacı", "Tilki", "Kedi", "Satıcı"],
+  "main_characters": ["Pinokyo", "Gepetto"],
+  "char_spans": {
+    "Tilki": ["Tilki", "Kurnaz Tilki"],
+    "Kedi": ["Kedi", "Hınzır Kedi"]
+  },
+  "relations": [
+    {"from": "Pinokyo", "to": "Gepetto", "type": "pozitif"},
+    {"from": "Pinokyo", "to": "Mavi Peri", "type": "pozitif"},
+    {"from": "Pinokyo", "to": "Çekirge", "type": "pozitif"},
+    {"from": "Pinokyo", "to": "Kuklacı", "type": "pozitif"},
+    {"from": "Pinokyo", "to": "Tilki", "type": "negatif"},
+    {"from": "Pinokyo", "to": "Kedi", "type": "negatif"},
+    {"from": "Pinokyo", "to": "Satıcı", "type": "negatif"},
+    {"from": "Tilki", "to": "Kedi", "type": "pozitif"},
+    {"from": "Mavi Peri", "to": "Çekirge", "type": "pozitif"}
+  ]
+}

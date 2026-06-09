@@ -1,0 +1,14 @@
+{
+  "story": "hansefendiN",
+  "text_file": "hansefendiN.txt",
+  "characters": ["Hans", "Efendisi", "Atlı", "Köylü", "Kasap", "Delikanlı", "Bileyci"],
+  "main_characters": ["Hans"],
+  "relations": [
+    {"from": "Hans", "to": "Efendisi", "type": "pozitif"},
+    {"from": "Hans", "to": "Atlı", "type": "notr"},
+    {"from": "Hans", "to": "Köylü", "type": "notr"},
+    {"from": "Hans", "to": "Kasap", "type": "pozitif"},
+    {"from": "Hans", "to": "Delikanlı", "type": "negatif"},
+    {"from": "Hans", "to": "Bileyci", "type": "notr"}
+  ]
+}

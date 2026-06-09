@@ -1,0 +1,21 @@
+{
+  "story": "polyannaX",
+  "text_file": "polyannaX.txt",
+  "characters": ["Pollyanna", "Polly Teyze", "Nancy", "Bay Pedaltın", "Tomy"],
+  "main_characters": ["Pollyanna"],
+  "char_spans": {
+    "Bay Pedaltın": ["Bay Pedaltın", "esrarengiz beyefendi", "esrarengiz adam"],
+    "Polly Teyze": ["Polly Teyze", "Bayan Polly", "Hanımefendi Polly", "teyze"],
+    "Nancy": ["Nancy", "Bayan Nancy"]
+  },
+  "relations": [
+    {"from": "Pollyanna", "to": "Polly Teyze", "type": "pozitif"},
+    {"from": "Pollyanna", "to": "Nancy", "type": "pozitif"},
+    {"from": "Pollyanna", "to": "Bay Pedaltın", "type": "pozitif"},
+    {"from": "Pollyanna", "to": "Tomy", "type": "pozitif"},
+    {"from": "Polly Teyze", "to": "Nancy", "type": "notr"},
+    {"from": "Polly Teyze", "to": "Tomy", "type": "negatif"},
+    {"from": "Bay Pedaltın", "to": "Polly Teyze", "type": "pozitif"},
+    {"from": "Bay Pedaltın", "to": "Tomy", "type": "pozitif"}
+  ]
+}

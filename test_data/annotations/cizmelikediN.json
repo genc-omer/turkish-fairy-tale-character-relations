@@ -1,0 +1,14 @@
+{
+  "story": "cizmelikediN",
+  "text_file": "cizmelikediN.txt",
+  "characters": ["Çizmeli Kedi", "Marki", "Kral", "Prenses", "Dev"],
+  "main_characters": ["Çizmeli Kedi", "Marki"],
+  "char_spans": {"Marki": ["Marki", "küçük oğul", "efendisi", "sahibi"]},
+  "relations": [
+    {"from": "Çizmeli Kedi", "to": "Marki", "type": "pozitif"},
+    {"from": "Çizmeli Kedi", "to": "Kral", "type": "pozitif"},
+    {"from": "Çizmeli Kedi", "to": "Dev", "type": "negatif"},
+    {"from": "Kral", "to": "Marki", "type": "pozitif"},
+    {"from": "Marki", "to": "Prenses", "type": "pozitif"}
+  ]
+}

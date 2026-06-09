@@ -1,0 +1,21 @@
+{
+  "story": "tasakusu",
+  "text_file": "tasakusu.txt",
+  "characters": ["Genç Delikanlı", "Sülün Kız", "Sülün Kızın Babası", "Sülün Kızın Annesi", "Genç Delikanlının Babası", "Pazardaki Yaşlı Adam", "Dede", "Tasa Kuşu"],
+  "main_characters": ["Genç Delikanlı", "Sülün Kız"],
+  "char_spans": {
+    "Genç Delikanlı": ["genç delikanlı", "genç adam", "delikanlı", "yakışıklı oğul"],
+    "Sülün Kızın Babası": ["Sülün Kızın babası", "kızın babası", "yaşlı baba", "yaşlı adam"],
+    "Genç Delikanlının Babası": ["babası", "baba"]
+  },
+  "relations": [
+    {"from": "Sülün Kız", "to": "Sülün Kızın Annesi", "type": "pozitif"},
+    {"from": "Sülün Kız", "to": "Sülün Kızın Babası", "type": "pozitif"},
+    {"from": "Sülün Kız", "to": "Genç Delikanlı", "type": "pozitif"},
+    {"from": "Genç Delikanlı", "to": "Sülün Kızın Babası", "type": "notr"},
+    {"from": "Genç Delikanlı", "to": "Genç Delikanlının Babası", "type": "pozitif"},
+    {"from": "Genç Delikanlı", "to": "Pazardaki Yaşlı Adam", "type": "pozitif"},
+    {"from": "Genç Delikanlı", "to": "Dede", "type": "pozitif"},
+    {"from": "Genç Delikanlı", "to": "Tasa Kuşu", "type": "pozitif"}
+  ]
+}

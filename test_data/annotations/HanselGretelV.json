@@ -1,0 +1,21 @@
+{
+  "story": "Hansel_GretelV",
+  "text_file": "Hansel GretelV.txt",
+  "characters": ["Hansel", "Gretel", "Oduncu", "Üvey Anne", "Cadı"],
+  "main_characters": ["Hansel", "Gretel"],
+  "char_spans": {
+    "Oduncu": ["oduncu", "baba", "adam", "babaları"],
+    "Üvey Anne": ["üvey anne", "üvey anneleri", "oduncunun karısı", "oduncunun eşi", "kadın", "kötü kalpli kadın"],
+    "Cadı": ["cadı", "yaşlı kadın", "yaşlı cadı", "çirkin cadı"]
+  },
+  "relations": [
+    {"from": "Hansel", "to": "Gretel", "type": "pozitif"},
+    {"from": "Hansel", "to": "Oduncu", "type": "pozitif"},
+    {"from": "Gretel", "to": "Oduncu", "type": "pozitif"},
+    {"from": "Hansel", "to": "Üvey Anne", "type": "negatif"},
+    {"from": "Gretel", "to": "Üvey Anne", "type": "negatif"},
+    {"from": "Oduncu", "to": "Üvey Anne", "type": "negatif"},
+    {"from": "Hansel", "to": "Cadı", "type": "negatif"},
+    {"from": "Gretel", "to": "Cadı", "type": "negatif"}
+  ]
+}

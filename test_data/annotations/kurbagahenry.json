@@ -1,0 +1,12 @@
+{
+  "story": "kurbagahenry",
+  "text_file": "kurbagahenry.txt",
+  "characters": ["Prenses", "Kral", "Kurbağa", "Sadık Henry"],
+  "main_characters": ["Prenses", "Kurbağa"],
+  "char_spans": {"Kurbağa": ["kurbağa", "kral oğlu", "genç kral", "prens"]},
+  "relations": [
+    {"from": "Prenses", "to": "Kurbağa", "type": "pozitif"},
+    {"from": "Prenses", "to": "Kral", "type": "pozitif"},
+    {"from": "Kurbağa", "to": "Sadık Henry", "type": "pozitif"}
+  ]
+}

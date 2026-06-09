@@ -1,0 +1,11 @@
+{
+  "story": "esekokuz",
+  "text_file": "esekokuz.txt",
+  "characters": ["Çiftçi", "Koca Öküz", "Fakir Adam", "Yaşlı Amca"],
+  "main_characters": ["Çiftçi"],
+  "relations": [
+    {"from": "Çiftçi", "to": "Koca Öküz", "type": "pozitif"},
+    {"from": "Çiftçi", "to": "Fakir Adam", "type": "pozitif"},
+    {"from": "Çiftçi", "to": "Yaşlı Amca", "type": "notr"}
+  ]
+}

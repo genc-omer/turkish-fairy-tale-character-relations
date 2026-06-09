@@ -1,0 +1,9 @@
+{
+  "story": "gumusayN",
+  "text_file": "gumusayN.txt",
+  "characters": ["Gümüş Ay", "Elanor"],
+  "main_characters": ["Gümüş Ay", "Elanor"],
+  "relations": [
+    {"from": "Gümüş Ay", "to": "Elanor", "type": "pozitif"}
+  ]
+}

@@ -1,0 +1,14 @@
+{
+  "story": "kinalikuzu",
+  "text_file": "kinalikuzu.txt",
+  "characters": ["Ali Çoban", "Salih", "Kınalı", "Adam"],
+  "main_characters": ["Ali Çoban", "Salih"],
+  "relations": [
+    {"from": "Salih", "to": "Kınalı", "type": "pozitif"},
+    {"from": "Salih", "to": "Ali Çoban", "type": "pozitif"},
+    {"from": "Ali Çoban", "to": "Kınalı", "type": "pozitif"},
+    {"from": "Adam", "to": "Kınalı", "type": "negatif"},
+    {"from": "Adam", "to": "Salih", "type": "pozitif"},
+    {"from": "Adam", "to": "Ali Çoban", "type": "pozitif"}
+  ]
+}

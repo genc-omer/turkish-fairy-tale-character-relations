@@ -1,0 +1,24 @@
+{
+  "story": "vezirnureddin",
+  "text_file": "vezirnureddin.txt",
+  "characters": ["Şemseddin", "Nureddin", "Basra Veziri", "Hasan'ın Annesi", "Hasan Bedreddin", "Vezirin Kızı"],
+  "main_characters": ["Hasan Bedreddin", "Nureddin", "Şemseddin"],
+  "char_spans": {
+    "Şemseddin": ["Mısır'daki vezir", "kızın babası"],
+    "Nureddin": ["İran'daki vezir"],
+    "Hasan Bedreddin": ["Hasan", "Hasan Bedreddin"],
+    "Vezirin Kızı": ["kız", "Şemseddin'in kızı", "Hasan'ın eşi"],
+    "Hasan'ın Annesi": ["Nureddin'in eşi", "annesi"],
+    "Basra Veziri": ["Basra'daki vezir", "yaşlı vezir"]
+  },
+  "relations": [
+    {"from": "Şemseddin", "to": "Nureddin", "type": "negatif"},
+    {"from": "Nureddin", "to": "Basra Veziri", "type": "pozitif"},
+    {"from": "Nureddin", "to": "Hasan'ın Annesi", "type": "pozitif"},
+    {"from": "Nureddin", "to": "Hasan Bedreddin", "type": "pozitif"},
+    {"from": "Hasan'ın Annesi", "to": "Hasan Bedreddin", "type": "pozitif"},
+    {"from": "Hasan Bedreddin", "to": "Vezirin Kızı", "type": "pozitif"},
+    {"from": "Hasan Bedreddin", "to": "Şemseddin", "type": "pozitif"},
+    {"from": "Şemseddin", "to": "Vezirin Kızı", "type": "pozitif"}
+  ]
+}

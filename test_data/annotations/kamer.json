@@ -1,0 +1,13 @@
+{
+  "story": "kamer",
+  "text_file": "kamer.txt",
+  "characters": ["Kamer", "Baba", "Yıldız", "Kutup Yıldızı", "Kuyruklu Yıldız", "Güneş"],
+  "main_characters": ["Kamer", "Yıldız"],
+  "relations": [
+    {"from": "Kamer", "to": "Baba", "type": "pozitif"},
+    {"from": "Kamer", "to": "Yıldız", "type": "pozitif"},
+    {"from": "Kamer", "to": "Kutup Yıldızı", "type": "pozitif"},
+    {"from": "Kamer", "to": "Kuyruklu Yıldız", "type": "pozitif"},
+    {"from": "Kamer", "to": "Güneş", "type": "pozitif"}
+  ]
+}

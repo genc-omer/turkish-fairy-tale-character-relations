@@ -1,0 +1,11 @@
+{
+  "story": "lustig",
+  "text_file": "lustig.txt",
+  "characters": ["Lustig", "Aziz Petrus", "Kadın"],
+  "main_characters": ["Lustig", "Aziz Petrus"],
+  "relations": [
+    {"from": "Lustig", "to": "Aziz Petrus", "type": "pozitif"},
+    {"from": "Lustig", "to": "Kadın", "type": "pozitif"},
+    {"from": "Aziz Petrus", "to": "Kadın", "type": "pozitif"}
+  ]
+}

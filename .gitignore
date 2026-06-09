@@ -1,0 +1,32 @@
+# === Üretilen artefaktlar (ÇIKTI; kod/gold DEĞİL) — git'e girmez ===
+# Python derleme
+__pycache__/
+*.pyc
+
+# Çalışma/koşu logları
+*.log
+*.err
+
+# Üretilen rapor & tablo çıktıları
+*.tex
+*.html
+/gecen_yil_rapor.md
+/guncel_ara_rapor.md
+/metrik_raporu.md
+/proje_kod.md
+
+# Pipeline çıktıları (predictions / metrics) — hepsi yeniden üretilebilir
+/predictions*.json
+/per_story_*.json
+/before_metrics*.json
+/after_metrics*.json
+/metrics_*.json
+/before_metrics*.txt
+/after_metrics*.txt
+/metrics_*.txt
+/karakterler.txt
+
+# === İZLENİR (bilerek): ===
+#   - tüm *.py (kod), requirements.txt, README.md
+#   - NLP-Hikayeler/  (masal korpusu, girdi verisi)
+#   - test_data/      (gold JSON'lar + ANNOTATION_RULES.md)  -> kök-çapalı (/...) kurallar buraya DOKUNMAZ

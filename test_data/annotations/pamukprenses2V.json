@@ -1,0 +1,20 @@
+{
+  "story": "pamukprenses2V",
+  "text_file": "pamukprenses2V.txt",
+  "characters": ["Pamuk Prenses", "Kraliçe", "Ayna", "Avcı", "Yedi Cüceler", "Prens"],
+  "main_characters": ["Pamuk Prenses", "Kraliçe"],
+  "char_spans": {
+    "Kraliçe": ["kraliçe", "kötü kalpli kraliçe", "üvey anne", "yaşlı kadın", "tarak satıcısı", "dilenci"],
+    "Pamuk Prenses": ["Pamuk Prenses", "prenses", "cam tabuttaki prenses"],
+    "Ayna": ["ayna", "sihirli ayna"]
+  },
+  "relations": [
+    {"from": "Pamuk Prenses", "to": "Kraliçe", "type": "negatif"},
+    {"from": "Pamuk Prenses", "to": "Avcı", "type": "pozitif"},
+    {"from": "Pamuk Prenses", "to": "Yedi Cüceler", "type": "pozitif"},
+    {"from": "Pamuk Prenses", "to": "Prens", "type": "pozitif"},
+    {"from": "Kraliçe", "to": "Avcı", "type": "negatif"},
+    {"from": "Kraliçe", "to": "Ayna", "type": "notr"},
+    {"from": "Prens", "to": "Yedi Cüceler", "type": "pozitif"}
+  ]
+}

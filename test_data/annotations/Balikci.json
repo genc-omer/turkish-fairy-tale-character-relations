@@ -1,0 +1,16 @@
+{
+  "story": "Balikci",
+  "text_file": "Balikci.txt",
+  "characters": ["Ahmet", "Ayşe", "Zeynep", "Mehmet", "Cin"],
+  "main_characters": ["Ahmet"],
+  "char_spans": {
+    "Ahmet": ["Ahmet", "Balıkçı", "balıkçı", "adam", "baba"]
+  },
+  "relations": [
+    {"from": "Ahmet", "to": "Ayşe", "type": "pozitif"},
+    {"from": "Ahmet", "to": "Zeynep", "type": "pozitif"},
+    {"from": "Ahmet", "to": "Mehmet", "type": "pozitif"},
+    {"from": "Ahmet", "to": "Cin", "type": "pozitif"},
+    {"from": "Zeynep", "to": "Mehmet", "type": "pozitif"}
+  ]
+}

@@ -1,0 +1,16 @@
+{
+  "story": "sarmanX",
+  "text_file": "sarmanX.txt",
+  "characters": ["Ali", "Hasan", "Sarman", "Yavru Kuş", "Yeni Korkuluk"],
+  "main_characters": ["Sarman", "Yavru Kuş"],
+  "char_spans": {
+    "Yeni Korkuluk": ["güzel mi güzel bir korkuluk", "yeni arkadaş"]
+  },
+  "relations": [
+    {"from": "Ali", "to": "Hasan", "type": "pozitif"},
+    {"from": "Ali", "to": "Sarman", "type": "pozitif"},
+    {"from": "Hasan", "to": "Sarman", "type": "pozitif"},
+    {"from": "Sarman", "to": "Yavru Kuş", "type": "pozitif"},
+    {"from": "Sarman", "to": "Yeni Korkuluk", "type": "pozitif"}
+  ]
+}

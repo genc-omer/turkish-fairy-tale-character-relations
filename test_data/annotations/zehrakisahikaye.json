@@ -1,0 +1,16 @@
+{
+  "story": "zehrakisahikaye",
+  "text_file": "zehrakisahikaye.txt",
+  "characters": ["Zehra", "Cahide Hanım", "Aslı", "Begüm", "Aylin", "Cansu"],
+  "main_characters": ["Zehra"],
+  "relations": [
+    {"from": "Zehra", "to": "Cahide Hanım", "type": "pozitif"},
+    {"from": "Zehra", "to": "Aslı", "type": "negatif"},
+    {"from": "Zehra", "to": "Begüm", "type": "negatif"},
+    {"from": "Zehra", "to": "Aylin", "type": "negatif"},
+    {"from": "Zehra", "to": "Cansu", "type": "negatif"},
+    {"from": "Begüm", "to": "Cansu", "type": "pozitif"},
+    {"from": "Begüm", "to": "Aylin", "type": "pozitif"},
+    {"from": "Cansu", "to": "Aylin", "type": "pozitif"}
+  ]
+}

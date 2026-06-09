@@ -1,0 +1,18 @@
+{
+  "story": "guzelcirkin",
+  "text_file": "guzelcirkin.txt",
+  "characters": ["Güzel", "Tüccar", "Canavar", "Kız Kardeşler", "İyi Peri"],
+  "main_characters": ["Güzel", "Canavar"],
+  "char_spans": {
+    "Tüccar": ["tüccar", "baba", "babaları"],
+    "Canavar": ["Canavar", "Prens", "prens"]
+  },
+  "relations": [
+    {"from": "Güzel", "to": "Tüccar", "type": "pozitif"},
+    {"from": "Güzel", "to": "Canavar", "type": "pozitif"},
+    {"from": "Güzel", "to": "Kız Kardeşler", "type": "negatif"},
+    {"from": "Tüccar", "to": "Kız Kardeşler", "type": "negatif"},
+    {"from": "Güzel", "to": "İyi Peri", "type": "pozitif"},
+    {"from": "Tüccar", "to": "Canavar", "type": "negatif"}
+  ]
+}

@@ -1,0 +1,17 @@
+{
+  "story": "KirmiziBaslikliKiz2V",
+  "text_file": "KirmiziBaslikliKiz2V.txt",
+  "characters": ["Kırmızı Başlıklı Kız", "Anne", "Nine", "Kurt", "İkinci Kurt", "Avcı"],
+  "main_characters": ["Kırmızı Başlıklı Kız"],
+  "relations": [
+    {"from": "Kırmızı Başlıklı Kız", "to": "Anne", "type": "pozitif"},
+    {"from": "Kırmızı Başlıklı Kız", "to": "Nine", "type": "pozitif"},
+    {"from": "Kırmızı Başlıklı Kız", "to": "Kurt", "type": "negatif"},
+    {"from": "Kırmızı Başlıklı Kız", "to": "İkinci Kurt", "type": "negatif"},
+    {"from": "Nine", "to": "Kurt", "type": "negatif"},
+    {"from": "Nine", "to": "İkinci Kurt", "type": "negatif"},
+    {"from": "Avcı", "to": "Kurt", "type": "negatif"},
+    {"from": "Avcı", "to": "Kırmızı Başlıklı Kız", "type": "pozitif"},
+    {"from": "Avcı", "to": "Nine", "type": "pozitif"}
+  ]
+}

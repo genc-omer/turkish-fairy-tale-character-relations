@@ -1,0 +1,11 @@
+{
+  "story": "ceviz",
+  "text_file": "ceviz.txt",
+  "characters": ["Elif", "Anne", "Meyve Ağacı", "Ayşe"],
+  "main_characters": ["Elif"],
+  "relations": [
+    {"from": "Elif", "to": "Anne", "type": "pozitif"},
+    {"from": "Elif", "to": "Meyve Ağacı", "type": "pozitif"},
+    {"from": "Elif", "to": "Ayşe", "type": "pozitif"}
+  ]
+}

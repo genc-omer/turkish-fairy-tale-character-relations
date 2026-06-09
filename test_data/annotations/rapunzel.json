@@ -1,0 +1,16 @@
+{
+  "story": "rapunzel",
+  "text_file": "rapunzel.txt",
+  "characters": ["Rapunzel", "Cadı", "Adam", "Prens"],
+  "main_characters": ["Rapunzel", "Prens", "Cadı"],
+  "char_spans": {
+    "Adam": ["adam", "kocası", "hasta annenin kocası"],
+    "Cadı": ["cadı", "kötü cadı", "kıskanç cadı"]
+  },
+  "relations": [
+    {"from": "Adam", "to": "Cadı", "type": "negatif"},
+    {"from": "Cadı", "to": "Rapunzel", "type": "negatif"},
+    {"from": "Cadı", "to": "Prens", "type": "negatif"},
+    {"from": "Rapunzel", "to": "Prens", "type": "pozitif"}
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "story": "cirkinprens",
+  "text_file": "cirkinprens.txt",
+  "characters": ["Prenses", "Kral", "Kraliçe", "Gizemli Kadın", "Prens"],
+  "main_characters": ["Prenses", "Prens"],
+  "relations": [
+    {"from": "Kral", "to": "Kraliçe", "type": "pozitif"},
+    {"from": "Kral", "to": "Prenses", "type": "pozitif"},
+    {"from": "Kraliçe", "to": "Prenses", "type": "pozitif"},
+    {"from": "Prens", "to": "Prenses", "type": "pozitif"},
+    {"from": "Gizemli Kadın", "to": "Kraliçe", "type": "pozitif"}
+  ]
+}
