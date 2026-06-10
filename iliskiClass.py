@@ -39,13 +39,35 @@ class CharacterRelations:
                     for variation in parts:
                         self.variation_to_character[variation.lower()] = main_character
                         
+    def _bert_limiti(self):
+        try:
+            return int(self.model.config.max_position_embeddings)
+        except Exception:
+            return 512
+
+    def _uzun_segmenti_bol(self, metin):
+        """B2: BERT sinirini asan segmenti IC cumle sinirlarindan (.!?…) parcalara
+        ayirir; sondaki noktalamasiz kuyruk da korunur (icerik kaybi yok)."""
+        parcalar = re.findall(r"[^.!?…]+[.!?…]+|[^.!?…]+$", metin)
+        parcalar = [p.strip() for p in parcalar if p.strip()]
+        return parcalar if parcalar else [metin]
+
     def split_sentence_dialog(self):
         for match in re.finditer(self.pattern, self.text):
             sentence = match.group().strip()
             if not sentence:
                 continue
             self.is_dialog = (sentence.startswith("“") and sentence.endswith("”")) or (sentence.startswith('"') and sentence.endswith('"'))
-            self.segments.append((sentence.strip("“”\""), self.is_dialog))
+            temiz = sentence.strip("“”\"")
+            # B2: classifier 512 token sinirini asacak segmenti onceden bol —
+            # eskiden process() icindeki bare-except bu segmentleri SESSIZCE
+            # dusuruyordu (iliskiler kayboluyordu). Alt-cumleler kendi segmenti
+            # gibi islenir; sinir-alti segment davranisi DEGISMEZ.
+            if len(self.tokenizer.encode(temiz)) > self._bert_limiti():
+                for parca in self._uzun_segmenti_bol(temiz):
+                    self.segments.append((parca, self.is_dialog))
+            else:
+                self.segments.append((temiz, self.is_dialog))
 
     def find_characters(self, sentence):
         sentence = sentence.lower()
@@ -235,7 +257,9 @@ class CharacterRelations:
 
             try:
                 emotion = self.classifier(sentence)[0]["label"]
-            except:
+            except Exception as e:
+                # B2: dar except + log — sessiz dusurme yok (beklenmedik hatalar gorunur)
+                print(f"[uyari] duygu siniflandirma atlandi ({len(sentence)} kar): {e}")
                 self.past_sentences.append(sentence)
                 continue
 
