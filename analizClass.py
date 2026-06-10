@@ -108,6 +108,34 @@ class MetinAnaliz:
             return False  # tek-kelime baş kelimenin kendisi → aynı varlık, yut
         return True
 
+    # S4: saf çekim/iyelik eki zinciri (yaklaşık, İZİN VERİCİ). İzin vericilik
+    # güvenli yöndür: uzantı ek sayılırsa veto yok = eski davranış korunur.
+    _EK_ZINCIRI = re.compile(
+        r"(?:lar|ler|[yns]?[ıiuü]|[yn]?[ae]|[dt][ae]n?|n?[ıiuü]n|nd[ae]n?|yl[ae]|l[ae]|k[iı])+"
+    )
+
+    def _gecerli_gecis_sayisi(self, pattern, alt, metin, tek_kelime_map, kendi_karakteri):
+        """S4 sayım düzeltmesi (gölge-önek): 'polly' deseninin 'pollyanna',
+        'kral' deseninin 'kraliçe' token'larını sayması engellenir.
+        Kural: eşleşen token = alt + uzantı; uzantı saf ek zinciri DEĞİLSE ve
+        token BAŞKA bir grubun daha uzun tek-kelime varyasyonuyla açıklanıyorsa
+        (en-uzun-bilinen-varyasyon kazanır) eşleşme sayılmaz. Saf ek uzantıları
+        ('oduncunun', 'kızın') muaftır — sahip aynı varlıktır."""
+        sayi = 0
+        for m in re.finditer(pattern, metin):
+            eslesen = m.group(0)
+            ek = eslesen[len(alt):]
+            if ek and not self._EK_ZINCIRI.fullmatch(ek):
+                baskasinin = False
+                for v2, sahip in tek_kelime_map.items():
+                    if sahip != kendi_karakteri and len(v2) > len(alt) and eslesen.startswith(v2):
+                        baskasinin = True
+                        break
+                if baskasinin:
+                    continue
+            sayi += 1
+        return sayi
+
     def should_add_to_group(self, modifier, group_modifier):
         return self.is_sublist_or_subset(modifier, group_modifier) or self.is_sublist_or_subset(group_modifier, modifier)
 
@@ -275,7 +303,7 @@ class MetinAnaliz:
                         if (clean_char not in self.characters and clean_char not in self.turkce_stopwords and len(clean_char) > 1):
                             self.characters.add(clean_char)
     
-    def _assign_sentences_to_groups(self, doc, group, sentences):
+    def _assign_sentences_to_groups(self, doc, group, sentences, tek_kelime_map=None):
         main_char = group["karakter"]
         alternatives = set()
         for sub_group in group["gruplar"]:
@@ -283,6 +311,7 @@ class MetinAnaliz:
         alternatives = sorted(alternatives, key=lambda x: -len(x))
 
         patterns = [r'\b' + re.escape(alt) + r'([a-zçğıöşü]{0,6})?\b' for alt in alternatives]
+        tek_kelime_map = tek_kelime_map or {}
 
         for sent in sentences:
             sent_text = sent.text
@@ -295,10 +324,13 @@ class MetinAnaliz:
                     cleaned = self.clean_word(raw)
                     candidates.append(cleaned)
 
-            for pattern in patterns:
-                if any(re.search(pattern, candidate) for candidate in candidates):
+            for alt, pattern in zip(alternatives, patterns):
+                # S4: arama ve sayım gölge-önek vetosundan geçer (_gecerli_gecis_sayisi)
+                if any(self._gecerli_gecis_sayisi(pattern, alt, candidate, tek_kelime_map, main_char) > 0
+                       for candidate in candidates):
                     self.sentences_by_character[main_char].append(sent_text.strip())
-                    self.character_counter[main_char] += len(re.findall(pattern, sent_lower))
+                    self.character_counter[main_char] += self._gecerli_gecis_sayisi(
+                        pattern, alt, sent_lower, tek_kelime_map, main_char)
                     break
 
 
@@ -329,8 +361,17 @@ class MetinAnaliz:
 
         sentences = list(doc.sents)
 
+        # S4: tüm grupların tek-kelime varyasyon haritası (gölge-önek vetosu için).
+        # 'pollyanna' başka gruptayken 'polly' deseninin onu sayması engellenir.
+        tek_kelime_map = {}
         for group in groups:
-            self._assign_sentences_to_groups(doc, group, sentences)
+            for sub_group in group["gruplar"]:
+                for form in sub_group:
+                    if " " not in form:
+                        tek_kelime_map[form] = group["karakter"]
+
+        for group in groups:
+            self._assign_sentences_to_groups(doc, group, sentences, tek_kelime_map)
 
 
         # Yazdırma kısmı
