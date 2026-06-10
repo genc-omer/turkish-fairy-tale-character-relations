@@ -141,6 +141,14 @@ def run_one(story_path, iliski, verbose_logs=False):
     relations, raw_dominant = dominant_from_relations(iliski.all_relations)
     raw_label_tally = Counter(r["emotion"] for r in iliski.all_relations)
 
+    # Öneri-3 teşhis enstrümantasyonu: çift başına KRONOLOJİK ham etiket dizisi.
+    # Recency/final-state agregasyon deneyleri offline hesaplanabilsin diye yalnız
+    # _diag'a yazılır; SKORLANAN "relations" alanına dokunmaz.
+    pair_sequences = defaultdict(list)
+    for rel in iliski.all_relations:
+        c1, c2 = sorted([rel["from"], rel["to"]])
+        pair_sequences[(c1, c2)].append(rel["emotion"])
+
     # ---- Şema (FAZ 1 onayı sonrası): ≥5 merged final liste = modelin KARAKTER tahmini.
     #      Hem "tüm" hem "ana" metriği bu tek liste üzerinden hesaplanır.
     #      Ham (filtre öncesi) liste SKORLANMAZ; yalnızca _diag'da referans kalır. ----
@@ -159,6 +167,8 @@ def run_one(story_path, iliski, verbose_logs=False):
         "n_all_relations": len(iliski.all_relations),
         "n_dominant_pairs": len(relations),
         "raw_emotion_labels": dict(raw_label_tally),
+        # Öneri-3: kronolojik ham etiket dizileri (offline recency agregasyonu için)
+        "pair_sequences": {f"{a}||{b}": v for (a, b), v in pair_sequences.items()},
     }
 
     if verbose_logs:
