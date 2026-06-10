@@ -54,7 +54,9 @@ class CharacterRelations:
             pattern = r'\b' + re.escape(variation.lower()) + r'(?:[ınunıneoaüie]{0,4})?\b'
             if re.search(pattern, sentence):
                 found.add(character)
-        return list(found)
+        # S3: set sirasi PYTHONHASHSEED'e bagliydi -> next_chars[0] / zamir-aday
+        # secimi kosudan kosuya degisiyordu; sorted ile deterministik.
+        return sorted(found)
 
     def contains_pronoun(self, doc):
         return any(token.pos_ == "PRON" for token in doc)
@@ -161,6 +163,36 @@ class CharacterRelations:
     def moving_average(self, data, window_size=5):
         return [sum(data[i:i+window_size])/window_size for i in range(len(data)-window_size+1)]
 
+    def _compute_break_points(self):
+        """S3: kirilma noktalari TEK yontemden hesaplanir (moving-average +
+        %15 min-mesafe). draw_emotion_curve ile section_based_graph ayni
+        sinirlari paylasir; section_based_graph'in eski ham-etiket-farki
+        hesabi (list(set(...)) indekslemeli) kaldirildi.
+        Doner: (break_points, smooth_emotion_flow)."""
+        label_to_score = {"positive": 1, "neutral": 0, "negative": -1}
+        emotion_scores = [label_to_score.get(r["emotion"], 0) for r in self.all_relations]
+
+        smooth_emotion_flow = self.moving_average(emotion_scores, window_size=5)
+
+        change_scores = [abs(smooth_emotion_flow[i] - smooth_emotion_flow[i - 1]) for i in range(1, len(smooth_emotion_flow))]
+        if len(change_scores) < 2:
+            raise ValueError("Not enough emotion data.")
+
+        scores_copy = change_scores.copy()
+        first_break = scores_copy.index(max(scores_copy)) + 1
+        scores_copy[first_break - 1] = -1
+
+        min_distance = int(len(change_scores) * 0.15)
+
+        second_break_candidates = [(i, val) for i, val in enumerate(scores_copy) if abs(i + 1 - first_break) >= min_distance]
+
+        if second_break_candidates:
+            second_break = max(second_break_candidates, key=lambda x: x[1])[0] + 1
+        else:
+            second_break = scores_copy.index(max(scores_copy)) + 1
+
+        return sorted([first_break, second_break]), smooth_emotion_flow
+
     def process(self):
         for i, (sentence, self.is_dialog) in enumerate(self.segments):
             doc = self.nlp(sentence)
@@ -213,33 +245,8 @@ class CharacterRelations:
 
             
     def draw_emotion_curve(self) -> QPixmap:#Giriş gelişme sonuç bölümlerini ayırma ve grafiğini çizme
-        emotion_scores = []
-        label_to_score = {"positive": 1, "neutral": 0, "negative": -1}
-        for relation in self.all_relations:
-            emotion = relation["emotion"]
-            score = label_to_score.get(emotion, 0)
-            emotion_scores.append(score)
-
-        smooth_emotion_flow = self.moving_average(emotion_scores, window_size=5)
-
-        change_scores = [abs(smooth_emotion_flow[i] - smooth_emotion_flow[i - 1]) for i in range(1, len(smooth_emotion_flow))]
-        if len(change_scores) < 2:
-            raise ValueError("Not enough emotion data.")
-
-        scores_copy = change_scores.copy()
-        first_break = scores_copy.index(max(scores_copy)) + 1
-        scores_copy[first_break - 1] = -1  
-
-        min_distance = int(len(change_scores) * 0.15)
-
-        second_break_candidates = [(i, val) for i, val in enumerate(scores_copy) if abs(i + 1 - first_break) >= min_distance]
-
-        if second_break_candidates:
-            second_break = max(second_break_candidates, key=lambda x: x[1])[0] + 1
-        else:
-            second_break = scores_copy.index(max(scores_copy)) + 1
-
-        break_points = sorted([first_break, second_break])
+        # S3: hesap _compute_break_points'e tasindi (section_based_graph ile ortak)
+        break_points, smooth_emotion_flow = self._compute_break_points()
 
         fig = plt.figure(figsize=(10, 4))
         plt.plot(smooth_emotion_flow, color='purple', linewidth=2)
@@ -309,24 +316,14 @@ class CharacterRelations:
         from sklearn.metrics import pairwise_distances
         import numpy as np
 
-        emotions_sequence = [relation["emotion"] for relation in self.all_relations]
-        n_emotions = len(emotions_sequence)
-        
+        n_emotions = len(self.all_relations)
+
         if n_emotions < 3:
             raise ValueError("Not enough relation data (at least 3 required)")
 
-        unique_emotions = list(set(emotions_sequence))
-        emotion_to_idx = {emotion: i for i, emotion in enumerate(unique_emotions)}
-        vectors = [emotion_to_idx[e] for e in emotions_sequence]
-
-        change_scores = [abs(vectors[i] - vectors[i - 1]) for i in range(1, len(vectors))]
-
-        scores_copy = change_scores.copy()
-        first_break = scores_copy.index(max(scores_copy)) + 1
-        scores_copy[first_break - 1] = -1
-        second_break = scores_copy.index(max(scores_copy)) + 1
-
-        break_points = sorted([first_break, second_break])
+        # S3: kirilma noktalari duygu egrisiyle AYNI yontemden (moving-average +
+        # min-mesafe) gelir; GUI'de egri cizgileri ile bolum sinirlari artik tutarli.
+        break_points, _ = self._compute_break_points()
 
         section1 = self.all_relations[:break_points[0]]
         section2 = self.all_relations[break_points[0]:break_points[1]]

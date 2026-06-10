@@ -269,7 +269,7 @@ class MetinAnaliz:
             new_groups.append({
                 "cekirdek": self.get_head_word(most_frequently_mentioned_char),
                 "karakter": most_frequently_mentioned_char,
-                "gruplar": [list(set(merged_group))],
+                "gruplar": [sorted(set(merged_group))],   # S3: deterministik sira
                 "geçiş_sayısı": total_mention
             })
 
@@ -308,7 +308,7 @@ class MetinAnaliz:
         alternatives = set()
         for sub_group in group["gruplar"]:
             alternatives.update(sub_group)
-        alternatives = sorted(alternatives, key=lambda x: -len(x))
+        alternatives = sorted(alternatives, key=lambda x: (-len(x), x))   # S3: esit-uzunluk tie-break
 
         patterns = [r'\b' + re.escape(alt) + r'([a-zçğıöşü]{0,6})?\b' for alt in alternatives]
         tek_kelime_map = tek_kelime_map or {}
@@ -350,7 +350,7 @@ class MetinAnaliz:
             print(character)
         print("--------------------")
 
-        karakter_listesi = list(self.characters)
+        karakter_listesi = sorted(self.characters)   # S3: set sirasi kosular arasi degisiyordu
 
         groups = self.group_similars_by_head_word(karakter_listesi, self.nlp)
 
@@ -408,7 +408,7 @@ class MetinAnaliz:
             for group in groups:
                 if group["geçiş_sayısı"] >= 4:   # eşik = 4 (diz kriteri)
                     ana_karakter = group["karakter"]
-                    alternatifler = list(set(group["gruplar"][0]) - {ana_karakter})
+                    alternatifler = sorted(set(group["gruplar"][0]) - {ana_karakter})   # S3: satir icerigi deterministik
                     satir = ",".join([ana_karakter] + alternatifler)
                     f.write(satir + "\n")    
         
