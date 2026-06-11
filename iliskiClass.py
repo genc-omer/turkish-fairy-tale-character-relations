@@ -256,10 +256,13 @@ class CharacterRelations:
                     continue
 
             try:
-                emotion = self.classifier(sentence)[0]["label"]
+                # KALEM-4: truncation=True savunma katmani — B2 bolmesinden kacan
+                # patolojik (noktalamasiz) uzun parca olursa istisna yerine kirpilir.
+                emotion = self.classifier(sentence, truncation=True)[0]["label"]
             except Exception as e:
-                # B2: dar except + log — sessiz dusurme yok (beklenmedik hatalar gorunur)
-                print(f"[uyari] duygu siniflandirma atlandi ({len(sentence)} kar): {e}")
+                # B2/KALEM-4: dar except + ayrintili log (segment no + istisna tipi);
+                # sessiz dusurme yok — denetim sayaci bu satirlari toplar.
+                print(f"[uyari] segment {i} ({len(sentence)} kar) duygu siniflandirma atlandi: {type(e).__name__}: {e}")
                 self.past_sentences.append(sentence)
                 continue
 

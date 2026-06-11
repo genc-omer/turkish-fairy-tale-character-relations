@@ -141,6 +141,12 @@ def run_one(story_path, iliski, verbose_logs=False):
     relations, raw_dominant = dominant_from_relations(iliski.all_relations)
     raw_label_tally = Counter(r["emotion"] for r in iliski.all_relations)
 
+    # KALEM-4 denetimi: process() çıktısı log2'ye gömülü kalıyordu — classifier
+    # exception uyarılarını görünür kanala çıkar (stderr + _diag).
+    classifier_uyarilar = [ln.strip() for ln in log2.getvalue().splitlines() if "[uyari]" in ln]
+    for ln in classifier_uyarilar:
+        print(f"  !! {story_file} | {ln}", file=sys.stderr)
+
     # Öneri-3 teşhis enstrümantasyonu: çift başına KRONOLOJİK ham etiket dizisi.
     # Recency/final-state agregasyon deneyleri offline hesaplanabilsin diye yalnız
     # _diag'a yazılır; SKORLANAN "relations" alanına dokunmaz.
@@ -169,6 +175,8 @@ def run_one(story_path, iliski, verbose_logs=False):
         "raw_emotion_labels": dict(raw_label_tally),
         # Öneri-3: kronolojik ham etiket dizileri (offline recency agregasyonu için)
         "pair_sequences": {f"{a}||{b}": v for (a, b), v in pair_sequences.items()},
+        # KALEM-4: classifier exception denetim kaydı (masal başına)
+        "classifier_uyarilar": classifier_uyarilar,
     }
 
     if verbose_logs:
@@ -256,6 +264,10 @@ def main():
 
     ok = sum(1 for p in predictions if "error" not in p)
     print(f"\n==== BİTTİ: {ok}/{len(predictions)} masal başarılı -> {out_path} ====")
+    # KALEM-4 denetim sayacı: tüm masallarda classifier exception toplamı
+    toplam_uyari = sum(len(p.get("_diag", {}).get("classifier_uyarilar", []))
+                       for p in predictions if "error" not in p)
+    print(f"==== KALEM-4 denetim: toplam classifier exception = {toplam_uyari} ====")
 
 
 if __name__ == "__main__":
