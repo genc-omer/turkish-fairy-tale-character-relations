@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 """
-evaluation.py — FAZ 2: evaluates predictions.json against the gold
+evaluation.py: evaluates predictions.json against the gold
 (test_data/annotations/*.json) and produces the "before" metrics.
 
 ONLY reads: predictions.json + the gold JSON files. Does NOT TOUCH the pipeline
@@ -13,10 +13,10 @@ FILE MATCHING: by name normalization (remove spaces + underscores + extension,
 
 CHARACTER MATCHING (one-to-one, maximum bipartite — Kuhn, deterministic):
   - A predicted name that fits the gold CANONICAL name or a char_spans VARIANT
-    is a candidate edge (norm: lowercase + collapse spaces; difflib cutoff=0.8 fallback).
+    is a candidate edge (norm: lowercase + collapse spaces; difflib cutoff=0.85 fallback).
   - One prediction ↔ at most one gold; one gold ↔ at most one prediction.
   - Unmatched prediction = FP character; unmatched gold = FN character.
-  - All characters: prediction = final ≥5 list ↔ gold['characters'].
+  - All characters: prediction = final list (≥4 mentions) ↔ gold['characters'].
   - Main characters: prediction = TOP-N of the final list by geçiş_sayısı
     (N=len(gold.main), deterministic tie-break: (-count, name)) ↔ gold['main_characters'].
     NOTE (proxy warning): when #pred == #gold == N, mathematically
@@ -164,7 +164,7 @@ def match_characters(preds, golds, spans_map):
     (exact) comes before weak evidence (contain/fuzzy); this prevents errors such as
     'sülün kız' being swapped by mistake to 'Sülün Kızın Babası'.
     If a gold is split into N pieces, still ONLY one piece matches (TP), the others
-    stay FP → the precision effect of alias splitting (Odak 3) is kept.
+    stay FP → the precision effect of alias splitting is kept.
     Returns: {pred_idx: (gold_idx, tier)}."""
     nforms = [_forms(g, spans_map) for g in golds]
     npreds = [norm(p) for p in preds]
@@ -191,7 +191,7 @@ def eval_story(pred, gold):
     """Returns all counts for one tale (characters + relations + valence universe)."""
     out = {"story_file": pred.get("story_file"), "gold_story": gold.get("story")}
 
-    pred_chars = list(pred.get("characters", []))          # ≥5 final (descending by count)
+    pred_chars = list(pred.get("characters", []))          # final list, ≥4 mentions (descending by count)
     counts = pred.get("character_counts", {}) or {}
     gold_chars = list(gold.get("characters", []))
     gold_main = list(gold.get("main_characters", []))

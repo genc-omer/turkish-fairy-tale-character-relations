@@ -16,14 +16,12 @@ The methodology is one-to-one with evaluation.py:
   - main : pairs whose both ends fall on gold MAIN characters.
   - poz/neg rate = found with the correct valence / total gold (class C), notr_handling='exclude'.
 
-NOISE NOTE: edge finding is NOT DETERMINISTIC, but TP is stable over 5 runs (no noise);
-poz/neg valence has ~±1-2 pairs of GPU noise → Table 5.9 is a single snapshot; in the
-thesis it should be given as a multi-run mean±σ.
+DETERMINISM NOTE: the pipeline is deterministic; runs with PYTHONHASHSEED 0, 1 and 42
+gave identical predictions, so these tables do not change between runs.
 
 USAGE:
-    python iliski_tablolari.py                       # current = predictions_after_t4.json
-    python iliski_tablolari.py > iliski_tablolar.tex
-    python iliski_tablolari.py --predictions predictions_after_odak1.json
+    python iliski_tablolari.py                    # reads predictions.json, writes reports/iliski_tablolari.tex
+    python iliski_tablolari.py --predictions other.json --out other.tex
 Needed in LaTeX: \\usepackage{float}
 """
 
@@ -143,9 +141,10 @@ def latex_posneg(rows, caption, label):
 
 def main():
     ap = argparse.ArgumentParser(description="Masal-bazlı karakterler arası ilişki LaTeX tabloları (otomatik)")
-    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR, "predictions_after_t4.json"))
+    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR, "predictions.json"))
     ap.add_argument("--annotations", default=os.path.join(SCRIPT_DIR, "test_data", "annotations"))
     ap.add_argument("--dump-json", default=None)
+    ap.add_argument("--out", default=os.path.join(SCRIPT_DIR, "reports", "iliski_tablolari.tex"))
     args = ap.parse_args()
 
     rows = build_rows(args.predictions, args.annotations)
@@ -160,12 +159,15 @@ def main():
     tum_tbl, tum_sc = latex_edge(rows, "tum",
         "Tüm Karakterler için Karakterler Arası İlişki Tespiti", "tab:tum-iliski")
 
-    print(ana_tbl, "\n")
-    print(latex_scores(ana_sc, "Ana Karakterler için Karakterler Arası İlişki Tespiti Skorları", "tab:ana-iliski-skor"), "\n")
-    print(tum_tbl, "\n")
-    print(latex_scores(tum_sc, "Tüm Karakterler için Karakterler Arası İlişki Tespiti Skorları", "tab:tum-iliski-skor"), "\n")
-    print(latex_posneg(rows,
-        "Her Hikaye İçin Doğru Bulunan Pozitif ve Negatif Karakter İlişkileri", "tab:posneg"))
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as out:
+        print(ana_tbl, "\n", file=out)
+        print(latex_scores(ana_sc, "Ana Karakterler için Karakterler Arası İlişki Tespiti Skorları", "tab:ana-iliski-skor"), "\n", file=out)
+        print(tum_tbl, "\n", file=out)
+        print(latex_scores(tum_sc, "Tüm Karakterler için Karakterler Arası İlişki Tespiti Skorları", "tab:tum-iliski-skor"), "\n", file=out)
+        print(latex_posneg(rows,
+            "Her Hikaye İçin Doğru Bulunan Pozitif ve Negatif Karakter İlişkileri", "tab:posneg"), file=out)
+    print("YAZILDI:", args.out)
 
 
 if __name__ == "__main__":

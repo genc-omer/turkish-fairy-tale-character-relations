@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-run_baseline.py — batch runner without the GUI (FAZ 1).
+run_baseline.py — batch runner without the GUI.
 
 Purpose: repeat the CALL ORDER of mainwindow.Ui_MainWindow.analiz_et exactly, without
 the GUI, and write the character + relation predictions for each tale to
 predictions.json.
 
-CONSTRAINT: analizClass / iliskiClass / mainwindow / main.py are NOT CHANGED. This file
-only imports them and drives the existing pipeline. The pipeline logic stays the same.
+This file does not change the pipeline: it only imports analizClass and iliskiClass
+and runs them in the same order as the GUI.
 
-analiz_et flow (mainwindow.py:587-604):
+analiz_et flow (mainwindow.py, Ui_MainWindow.analiz_et):
     analiz = MetinAnaliz(hikaye_yolu)
-    sirali_gruplar = analiz.tum_islemler()        # -> writes karakterler.txt (>=5)
+    sirali_gruplar = analiz.tum_islemler()        # -> writes karakterler.txt (>=4 mentions)
     self.iliski.story_path = hikaye_yolu
     self.iliski.load_text()                        # reads karakterler.txt
     self.iliski.split_sentence_dialog()
     self.iliski.process()                          # -> self.iliski.all_relations
 
-Dominant relation: the calculation inside overall_relation_graph (iliskiClass.py:228-237)
-is replicated ONE-TO-ONE (without touching the class, by reading all_relations).
+Dominant relation: the calculation inside iliskiClass.overall_relation_graph is
+replicated ONE-TO-ONE (without touching the class, by reading all_relations).
 """
 
 import argparse
@@ -45,7 +45,7 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
 
-from analizClass import MetinAnaliz          # noqa: E402
+from analizClass import MENTION_THRESHOLD, MetinAnaliz   # noqa: E402
 from iliskiClass import CharacterRelations    # noqa: E402
 
 HIKAYE_DIR = os.path.join(SCRIPT_DIR, "NLP-Hikayeler", "hikayeler")
@@ -71,7 +71,7 @@ def map_emotion(label):
 
 
 def dominant_from_relations(all_relations):
-    """ONE-TO-ONE the same as iliskiClass.overall_relation_graph (lines 228-237):
+    """ONE-TO-ONE the same as iliskiClass.overall_relation_graph:
     one dominant emotion per pair via undirected sorted pair + Counter.most_common."""
     relations_emotions = defaultdict(list)
     for relation in all_relations:
@@ -89,7 +89,7 @@ def dominant_from_relations(all_relations):
 
 
 def read_karakterler_txt(path=KARAKTERLER_TXT):
-    """karakterler.txt written by MetinAnaliz: 'kanonik,var1,var2,...' (>=5)."""
+    """karakterler.txt written by MetinAnaliz: 'kanonik,var1,var2,...' (>=4 mentions)."""
     spans = {}
     if not os.path.exists(path):
         return spans
@@ -102,7 +102,7 @@ def read_karakterler_txt(path=KARAKTERLER_TXT):
 
 
 def reset_iliski(iliski):
-    """Same state reset as geri_git in the GUI (mainwindow.py:563-576).
+    """Same state reset as Ui_MainWindow.geri_git in the GUI.
     self.iliski is built once in the GUI and reset between tales."""
     iliski.story_path = None
     iliski.variation_to_character = {}
@@ -122,12 +122,12 @@ def run_one(story_path, iliski, verbose_logs=False):
     analiz = MetinAnaliz(story_path)
     log1 = io.StringIO()
     with redirect_stdout(log1):
-        sirali = analiz.tum_islemler()  # writes karakterler.txt; returns [(isim,sayı),...] (>=5)
+        sirali = analiz.tum_islemler()  # writes karakterler.txt; returns [(isim,sayı),...] (>=4 mentions)
 
     raw_detected = sorted(analiz.characters)              # (a) ALL detections (before filtering, raw)
-    final_chars = [name for (name, cnt) in sirali]        # (b) MAIN (past the >=5 threshold, merged)
+    final_chars = [name for (name, cnt) in sirali]        # (b) MAIN (past the >=4 threshold, merged)
     final_counts = {name: cnt for (name, cnt) in sirali}
-    spans = read_karakterler_txt()                        # >=5 canonical -> variants
+    spans = read_karakterler_txt()                        # >=4 canonical -> variants
 
     # ---- STAGE 2: Relation extraction (analiz_et: self.iliski is reused) ----
     reset_iliski(iliski)
@@ -141,13 +141,13 @@ def run_one(story_path, iliski, verbose_logs=False):
     relations, raw_dominant = dominant_from_relations(iliski.all_relations)
     raw_label_tally = Counter(r["emotion"] for r in iliski.all_relations)
 
-    # KALEM-4 audit: the process() output stayed buried in log2; send the classifier
+    # Classifier exception audit: the process() output stayed buried in log2; send the classifier
     # exception warnings to a visible channel (stderr + _diag).
     classifier_uyarilar = [ln.strip() for ln in log2.getvalue().splitlines() if "[uyari]" in ln]
     for ln in classifier_uyarilar:
         print(f"  !! {story_file} | {ln}", file=sys.stderr)
 
-    # Öneri-3 diagnostic instrumentation: CHRONOLOGICAL raw label sequence per pair.
+    # Diagnostic instrumentation: CHRONOLOGICAL raw label sequence per pair.
     # Written only to _diag so that recency/final-state aggregation experiments can be
     # computed offline; does not touch the SCORED "relations" field.
     pair_sequences = defaultdict(list)
@@ -155,10 +155,10 @@ def run_one(story_path, iliski, verbose_logs=False):
         c1, c2 = sorted([rel["from"], rel["to"]])
         pair_sequences[(c1, c2)].append(rel["emotion"])
 
-    # ---- Schema (after FAZ 1 approval): the ≥5 merged final list = the model's CHARACTER prediction.
+    # ---- Schema: the merged final list (≥4 mentions) = the model's CHARACTER prediction.
     #      Both the "tüm" and the "ana" metric are computed from this single list.
     #      The raw (pre-filter) list is NOT SCORED; it stays only in _diag as a reference. ----
-    result["characters"] = final_chars             # ≥5 merged final (sorted DESCENDING by mention count)
+    result["characters"] = final_chars             # merged final list, ≥4 mentions (sorted DESCENDING by mention count)
     result["character_counts"] = final_counts      # {kanonik: geçiş_sayısı}, used for the main = top-N selection
     result["relations"] = relations                # [{from,to,type}], type ∈ {pozitif,negatif}
 
@@ -168,14 +168,14 @@ def run_one(story_path, iliski, verbose_logs=False):
         "n_raw_detected": len(raw_detected),
         "n_final_ge5": len(final_chars),
         "final_spans": spans,
-        "threshold": 5,                            # fixed in the code (>=5); NOT adaptive
+        "threshold": MENTION_THRESHOLD,            # mention threshold of analizClass (fixed, not adaptive)
         "n_segments": len(iliski.segments),
         "n_all_relations": len(iliski.all_relations),
         "n_dominant_pairs": len(relations),
         "raw_emotion_labels": dict(raw_label_tally),
-        # Öneri-3: chronological raw label sequences (for offline recency aggregation)
+        # chronological raw label sequences (for offline recency aggregation)
         "pair_sequences": {f"{a}||{b}": v for (a, b), v in pair_sequences.items()},
-        # KALEM-4: classifier exception audit record (per tale)
+        # classifier exception audit record (per tale)
         "classifier_uyarilar": classifier_uyarilar,
     }
 
@@ -191,7 +191,7 @@ def print_summary(res):
     print(f"\n===== MASAL: {res['story_file']} =====")
     print(f"[ham] tespit (filtre öncesi, SKORLANMAZ) — {d['n_raw_detected']} adet:")
     print("    " + (", ".join(raw) if raw else "(yok)"))
-    print(f"[PRED] KARAKTER tahmini = ≥5 merged final — {d['n_final_ge5']} adet:")
+    print(f"[PRED] KARAKTER tahmini = ≥{MENTION_THRESHOLD} merged final — {d['n_final_ge5']} adet:")
     if res["characters"]:
         for name in res["characters"]:
             print(f"    - {name} ({res['character_counts'].get(name)} geçiş)")
@@ -243,7 +243,7 @@ def main():
     print("\nCharacterRelations bir kez kuruluyor (modeller bir kez yükleniyor)...")
     iliski_log = io.StringIO()
     with redirect_stdout(iliski_log):
-        iliski = CharacterRelations(story_path=None)  # same as mainwindow.setupUi:9
+        iliski = CharacterRelations(story_path=None)  # same as in mainwindow.setupUi
     print("  ... CharacterRelations hazır (spaCy tr_core_news_trf + savasy yüklendi).")
 
     predictions = []
@@ -264,7 +264,7 @@ def main():
 
     ok = sum(1 for p in predictions if "error" not in p)
     print(f"\n==== BİTTİ: {ok}/{len(predictions)} masal başarılı -> {out_path} ====")
-    # KALEM-4 audit counter: total classifier exceptions over all tales
+    # Audit counter: total classifier exceptions over all tales
     toplam_uyari = sum(len(p.get("_diag", {}).get("classifier_uyarilar", []))
                        for p in predictions if "error" not in p)
     print(f"==== KALEM-4 denetim: toplam classifier exception = {toplam_uyari} ====")

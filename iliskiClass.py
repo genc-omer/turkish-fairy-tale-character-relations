@@ -46,7 +46,7 @@ class CharacterRelations:
             return 512
 
     def _uzun_segmenti_bol(self, metin):
-        """B2: splits a segment that exceeds the BERT limit into pieces at INNER sentence
+        """Splits a segment that exceeds the BERT limit into pieces at INNER sentence
         boundaries (.!?…); a trailing tail without punctuation is kept too (no content loss)."""
         parcalar = re.findall(r"[^.!?…]+[.!?…]+|[^.!?…]+$", metin)
         parcalar = [p.strip() for p in parcalar if p.strip()]
@@ -59,7 +59,7 @@ class CharacterRelations:
                 continue
             self.is_dialog = (sentence.startswith("“") and sentence.endswith("”")) or (sentence.startswith('"') and sentence.endswith('"'))
             temiz = sentence.strip("“”\"")
-            # B2: split a segment in advance if it would exceed the classifier's 512-token limit;
+            # Split a segment in advance if it would exceed the classifier's 512-token limit;
             # the bare except in process() used to drop these segments SILENTLY
             # (relations were lost). Sub-sentences are processed as their own
             # segments; behavior for segments under the limit DOES NOT CHANGE.
@@ -76,14 +76,14 @@ class CharacterRelations:
             pattern = r'\b' + re.escape(variation.lower()) + r'(?:[ınunıneoaüie]{0,4})?\b'
             if re.search(pattern, sentence):
                 found.add(character)
-        # S3: set order depended on PYTHONHASHSEED -> the next_chars[0] / pronoun-candidate
+        # Set order depended on PYTHONHASHSEED -> the next_chars[0] / pronoun-candidate
         # choice changed from run to run; sorted makes it deterministic.
         return sorted(found)
 
     def contains_pronoun(self, doc):
         return any(token.pos_ == "PRON" for token in doc)
 
-    # Odak 1: target third-person pronoun sets (for number agreement)
+    # Target third-person pronoun sets (for number agreement)
     _PRON_SINGULAR = {"o", "onu", "ona", "onun", "onda", "ondan", "onunla", "onunki"}
     _PRON_PLURAL = {"onlar", "onları", "onlara", "onların", "onlarda", "onlardan"}
     _PRON_REFLEX = {"kendi", "kendisi", "kendine", "kendini", "kendinden",
@@ -124,7 +124,7 @@ class CharacterRelations:
                 unique_candidates.append(c)
                 seen.add(c)
 
-        # ---- Odak 1: number agreement + DO NOT RESOLVE IF AMBIGUOUS (only when pronoun_number is given) ----
+        # ---- Pronoun resolution: number agreement + DO NOT RESOLVE IF AMBIGUOUS (only when pronoun_number is given) ----
         if pronoun_number == "plural":
             # plural "onlar*": a group of 2+ characters in the previous context; if <2, do not resolve
             return list(unique_candidates) if len(unique_candidates) >= 2 else None
@@ -186,7 +186,7 @@ class CharacterRelations:
         return [sum(data[i:i+window_size])/window_size for i in range(len(data)-window_size+1)]
 
     def _compute_break_points(self):
-        """S3: break points are computed by ONE method (moving average +
+        """Break points are computed by ONE method (moving average +
         15% minimum distance). draw_emotion_curve and section_based_graph share
         the same boundaries; the old raw-label-difference calculation in
         section_based_graph (indexed via list(set(...))) was removed.
@@ -221,7 +221,7 @@ class CharacterRelations:
             present_characters = self.find_characters(sentence)
 
             if not present_characters and self.contains_pronoun(doc):
-                # Odak 1: detect the pronoun's number, apply number agreement + do-not-resolve-if-ambiguous
+                # Pronoun resolution: detect the pronoun's number, apply number agreement + do-not-resolve-if-ambiguous
                 pron_num = self.pronoun_number(doc)
                 resolved = self.find_previous_character(pronoun_number=pron_num)
 
@@ -256,11 +256,11 @@ class CharacterRelations:
                     continue
 
             try:
-                # KALEM-4: truncation=True as a safety layer; a pathological (unpunctuated) long piece
-                # that escapes the B2 split is truncated instead of raising an exception.
+                # truncation=True as a safety layer; a pathological (unpunctuated) long piece
+                # that escapes the long-segment split is truncated instead of raising an exception.
                 emotion = self.classifier(sentence, truncation=True)[0]["label"]
             except Exception as e:
-                # B2/KALEM-4: narrow except + detailed log (segment number + exception type);
+                # Narrow except + detailed log (segment number + exception type);
                 # no silent dropping; the audit counter collects these lines.
                 print(f"[uyari] segment {i} ({len(sentence)} kar) duygu siniflandirma atlandi: {type(e).__name__}: {e}")
                 self.past_sentences.append(sentence)
@@ -272,7 +272,7 @@ class CharacterRelations:
 
             
     def draw_emotion_curve(self) -> QPixmap:#Split into introduction, development and conclusion sections and draw the graph
-        # S3: calculation moved to _compute_break_points (shared with section_based_graph)
+        # The calculation is in _compute_break_points (shared with section_based_graph)
         break_points, smooth_emotion_flow = self._compute_break_points()
 
         fig = plt.figure(figsize=(10, 4))
@@ -348,7 +348,7 @@ class CharacterRelations:
         if n_emotions < 3:
             raise ValueError("Not enough relation data (at least 3 required)")
 
-        # S3: break points come from the SAME method as the emotion curve (moving average +
+        # Break points come from the SAME method as the emotion curve (moving average +
         # minimum distance); in the GUI the curve lines and section boundaries now agree.
         break_points, _ = self._compute_break_points()
 

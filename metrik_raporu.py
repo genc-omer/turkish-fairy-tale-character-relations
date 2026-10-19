@@ -7,9 +7,8 @@ form instead of LaTeX: styled HTML (in the browser, F1 color-coded) and GitHub M
 All of Tables 5.1–5.9 + a current-vs-last-year headline card at the top.
 
 USAGE:
-    python metrik_raporu.py                       # current = predictions_after_t4.json
-    python metrik_raporu.py --predictions predictions_after_odak1.json
-    python metrik_raporu.py --out-dir .           # output folder
+    python metrik_raporu.py                       # reads predictions.json, writes to reports/
+    python metrik_raporu.py --predictions other.json --out-dir other_folder
 Output: metrik_raporu.html + metrik_raporu.md
 """
 import argparse, os, sys, html
@@ -163,9 +162,9 @@ def build_md(kchar, irows, cfg):
 
 def main():
     ap=argparse.ArgumentParser()
-    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR,"predictions_after_t4.json"))
+    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR,"predictions.json"))
     ap.add_argument("--annotations", default=os.path.join(SCRIPT_DIR,"test_data","annotations"))
-    ap.add_argument("--out-dir", default="/mnt/user-data/outputs")
+    ap.add_argument("--out-dir", default=os.path.join(SCRIPT_DIR,"reports"))
     args=ap.parse_args()
     kchar=K.build_per_story(args.predictions,args.annotations)
     irows=I.build_rows(args.predictions,args.annotations)

@@ -18,9 +18,8 @@ NOTE (main characters): since this is a top-N proxy, most tales get fazla=eksik 
 this is normal/honest (see the old report's methodology).
 
 USAGE:
-    python karakter_tablolari.py                         # default predictions_after_t4.json
-    python karakter_tablolari.py > tablolar.tex
-    python karakter_tablolari.py --predictions predictions_after_odak1.json
+    python karakter_tablolari.py                  # reads predictions.json, writes reports/karakter_tablolari.tex
+    python karakter_tablolari.py --predictions other.json --out other.tex
     python karakter_tablolari.py --dump-json per_story_sonuc.json   # also writes the intermediate numbers
 Needed in LaTeX: \\usepackage{float}  (tables are placed with [H])
 """
@@ -145,10 +144,12 @@ def build_per_story(pred_path, ann_dir):
 
 def main():
     ap = argparse.ArgumentParser(description="Masal-bazlı karakter tespiti LaTeX tabloları (otomatik)")
-    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR, "predictions_after_t4.json"),
-                    help="değerlendirilecek predictions JSON (varsayılan: current committed t4)")
+    ap.add_argument("--predictions", default=os.path.join(SCRIPT_DIR, "predictions.json"),
+                    help="değerlendirilecek predictions JSON (varsayılan: run_baseline.py çıktısı)")
     ap.add_argument("--annotations", default=os.path.join(SCRIPT_DIR, "test_data", "annotations"))
     ap.add_argument("--dump-json", default=None, help="hesaplanan PER_STORY'yi bu JSON'a da yaz")
+    ap.add_argument("--out", default=os.path.join(SCRIPT_DIR, "reports", "karakter_tablolari.tex"),
+                    help="LaTeX çıktı dosyası")
     args = ap.parse_args()
 
     rows = build_per_story(args.predictions, args.annotations)
@@ -164,12 +165,15 @@ def main():
     tum_tbl, tum_sc = latex_per_story(
         rows, "tum", "Tüm Karakterler için Karakter Tespiti", "tab:tum-karakter")
 
-    print(ana_tbl, "\n")
-    print(latex_scores(
-        ana_sc, "Ana Karakterler için Karakter Tespiti Skorları", "tab:ana-skor"), "\n")
-    print(tum_tbl, "\n")
-    print(latex_scores(
-        tum_sc, "Tüm Karakterler için Karakter Tespiti Skorları", "tab:tum-skor"))
+    os.makedirs(os.path.dirname(os.path.abspath(args.out)), exist_ok=True)
+    with open(args.out, "w", encoding="utf-8") as out:
+        print(ana_tbl, "\n", file=out)
+        print(latex_scores(
+            ana_sc, "Ana Karakterler için Karakter Tespiti Skorları", "tab:ana-skor"), "\n", file=out)
+        print(tum_tbl, "\n", file=out)
+        print(latex_scores(
+            tum_sc, "Tüm Karakterler için Karakter Tespiti Skorları", "tab:tum-skor"), file=out)
+    print("YAZILDI:", args.out)
 
 
 if __name__ == "__main__":

@@ -47,6 +47,9 @@ models/
 *.log
 *.err
 
+# ---- Rapor klasörü (metrik_raporu.py, karakter_tablolari.py, iliski_tablolari.py çıktıları) ----
+/reports/
+
 # ---- Üretilen rapor & tablo çıktıları (yeniden üretilebilir) ----
 *.tex
 *.html

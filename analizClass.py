@@ -6,6 +6,11 @@ import spacy
 from spacy import displacy
 from nltk.tokenize import word_tokenize
 
+# Minimum mention count for a character to be kept. 4 is the knee of the threshold curve,
+# not the F1 peak: t5→t4 recall +4.6, 6 characters recovered, only +2 noise FP; at t3/t2
+# the noise explodes.
+MENTION_THRESHOLD = 4
+
 class MetinAnaliz:
     def __init__(self,path_hikaye, model_name="tr_core_news_trf"):
         self.path=path_hikaye
@@ -34,7 +39,7 @@ class MetinAnaliz:
         "nin", "nin", "nın", "nun", "nün", "ki", "mı", "mi", "mu", "mü","içi","ses",
         "ya", "ya da", "ya da", "ya da", "ya da", "ya da", "ya da", "ya da","ben", "sen", "o","ora","bura","şura","orada","burada","şurada","biri","biz","siz"
         }
-        # Odak 4: BARE (single-word, no compound) non-personified environmental/abstract/collective
+        # Blacklist of BARE (single-word, no compound) non-personified environmental/abstract/collective
         # entities; removed only in the dependency (nsubj + human verb) branch.
         # NOTE: güneş/ay/yıldız (sun/moon/star) are left out ON PURPOSE; in a tale a personified
         #      celestial body can be a character (in the Kamer gold, Güneş and Yıldız are real characters).
@@ -95,7 +100,7 @@ class MetinAnaliz:
         return doc[-1].lemma_.lower()
 
     def _iyelik_sahibi_mi(self, single_word, phrase, head_word):
-        """Over-merge fix (P1, possessive absorption).
+        """Over-merge fix (possessive absorption).
         In an 'X'in Y' possessive phrase, a single-word possessor (X) that is NOT
         the head word (Y) is a separate entity. E.g. 'hansel' ∈ 'hansel gretel'in
         babası', but hansel is the POSSESSOR and baba is the HEAD, so hansel is not
@@ -109,14 +114,14 @@ class MetinAnaliz:
             return False  # the single word is the head word itself → same entity, absorb
         return True
 
-    # S4: a chain of pure inflection/possessive suffixes (approximate, PERMISSIVE). Being permissive
+    # A chain of pure inflection/possessive suffixes (approximate, PERMISSIVE). Being permissive
     # is the safe direction: if the extension counts as a suffix there is no veto = old behavior kept.
     _EK_ZINCIRI = re.compile(
         r"(?:lar|ler|[yns]?[ıiuü]|[yn]?[ae]|[dt][ae]n?|n?[ıiuü]n|nd[ae]n?|yl[ae]|l[ae]|k[iı])+"
     )
 
     def _gecerli_gecis_sayisi(self, pattern, alt, metin, tek_kelime_map, kendi_karakteri):
-        """S4 count fix (shadow prefix): stops the 'polly' pattern from counting
+        """Mention-count fix (shadow prefix): stops the 'polly' pattern from counting
         'pollyanna' tokens and the 'kral' pattern from counting 'kraliçe' tokens.
         Rule: matched token = alt + extension; if the extension is NOT a pure suffix
         chain and the token is explained by a longer single-word variant of ANOTHER
@@ -191,7 +196,7 @@ class MetinAnaliz:
             if character1 in character2.split() and not self._iyelik_sahibi_mi(character1, character2, head_word_2):
                 dd=1
                 # Single-word character occurs inside the other character
-                # (P1 guard: the possessor side of a possessive phrase is not absorbed)
+                # (possessive guard: the possessor side of a possessive phrase is not absorbed)
                 matched_characters.append((j, character2, character_count.get(character2, 0)))
             else:
                 # If the head words are similar
@@ -270,7 +275,7 @@ class MetinAnaliz:
             new_groups.append({
                 "cekirdek": self.get_head_word(most_frequently_mentioned_char),
                 "karakter": most_frequently_mentioned_char,
-                "gruplar": [sorted(set(merged_group))],   # S3: deterministic order
+                "gruplar": [sorted(set(merged_group))],   # sorted for a deterministic order
                 "geçiş_sayısı": total_mention
             })
 
@@ -291,7 +296,7 @@ class MetinAnaliz:
                 if verb.pos_ == "VERB" and verb.lemma_ in self.insansi_eylemler:
                     phrase = self.get_modifier_chain(token)
                     if phrase:
-                        # Odak 4: do not count it as a character if it is bare (single word, no compound) and blacklisted.
+                        # Do not count it as a character if it is bare (single word, no compound) and blacklisted.
                         # Compounds ("kuyruklu yıldız", "kara fırtına") are NOT affected → kept.
                         words = phrase.split()
                         if len(words) == 1 and (phrase in self.non_karakter
@@ -309,7 +314,7 @@ class MetinAnaliz:
         alternatives = set()
         for sub_group in group["gruplar"]:
             alternatives.update(sub_group)
-        alternatives = sorted(alternatives, key=lambda x: (-len(x), x))   # S3: tie-break for equal length
+        alternatives = sorted(alternatives, key=lambda x: (-len(x), x))   # name breaks ties for equal length (deterministic order)
 
         patterns = [r'\b' + re.escape(alt) + r'([a-zçğıöşü]{0,6})?\b' for alt in alternatives]
         tek_kelime_map = tek_kelime_map or {}
@@ -326,7 +331,7 @@ class MetinAnaliz:
                     candidates.append(cleaned)
 
             for alt, pattern in zip(alternatives, patterns):
-                # S4: search and count go through the shadow-prefix veto (_gecerli_gecis_sayisi)
+                # Search and count go through the shadow-prefix veto (_gecerli_gecis_sayisi)
                 if any(self._gecerli_gecis_sayisi(pattern, alt, candidate, tek_kelime_map, main_char) > 0
                        for candidate in candidates):
                     self.sentences_by_character[main_char].append(sent_text.strip())
@@ -351,7 +356,7 @@ class MetinAnaliz:
             print(character)
         print("--------------------")
 
-        karakter_listesi = sorted(self.characters)   # S3: set order changed between runs
+        karakter_listesi = sorted(self.characters)   # sorted: set order changed between runs
 
         groups = self.group_similars_by_head_word(karakter_listesi, self.nlp)
 
@@ -362,7 +367,7 @@ class MetinAnaliz:
 
         sentences = list(doc.sents)
 
-        # S4: single-word variant map of all groups (for the shadow-prefix veto).
+        # Single-word variant map of all groups (for the shadow-prefix veto).
         # When 'pollyanna' is in another group, the 'polly' pattern does not count it.
         tek_kelime_map = {}
         for group in groups:
@@ -392,9 +397,7 @@ class MetinAnaliz:
 
         # Sort by mention count (descending) and print
         print("\nBirleştirilmiş Gruplar (Geçiş Sayılarıyla, Sıralı):")
-        # Mention threshold = 4 (knee criterion, not the F1 peak). Curve: t5→t4 recall +4.6,
-        # 6 characters recovered, only +2 noise FP; at t3/t2 the noise explodes.
-        sirali_gruplar = sorted([g for g in groups if g["geçiş_sayısı"] >= 4], key=lambda x: x["geçiş_sayısı"], reverse=True)
+        sirali_gruplar = sorted([g for g in groups if g["geçiş_sayısı"] >= MENTION_THRESHOLD], key=lambda x: x["geçiş_sayısı"], reverse=True)
         for i, group in enumerate(sirali_gruplar, 1):
             print(f"Karakter = {group['karakter']} | Geçiş Sayısı = {group['geçiş_sayısı']}")
 
@@ -407,9 +410,9 @@ class MetinAnaliz:
 
         with open("karakterler.txt", "w", encoding="utf-8") as f:
             for group in groups:
-                if group["geçiş_sayısı"] >= 4:   # threshold = 4 (knee criterion)
+                if group["geçiş_sayısı"] >= MENTION_THRESHOLD:
                     ana_karakter = group["karakter"]
-                    alternatifler = sorted(set(group["gruplar"][0]) - {ana_karakter})   # S3: line content is deterministic
+                    alternatifler = sorted(set(group["gruplar"][0]) - {ana_karakter})   # sorted so the line content is deterministic
                     satir = ",".join([ana_karakter] + alternatifler)
                     f.write(satir + "\n")    
         
