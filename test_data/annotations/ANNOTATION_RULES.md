@@ -1,86 +1,47 @@
 # Annotation Kuralları — Karakter ve İlişki Etiketleme
 
-Bu belge, gold-standard manuel etiketlemenin tutarlılığını sağlamak için 
-oluşturulmuştur. İki bağımsız etiketleme (Claude + Gemini) çapraz kontrol 
-edilerek üzerinde uzlaşılan kurallardır.
+Bu belge, karakter ve ilişki etiketlemesinde uygulanan kuralları tanımlar. Kurallar, gold-standard manuel etiketlemenin tutarlılığını sağlamak amacıyla oluşturulmuştur.
 
 ## K1 — İlişki Seviyesi
-Tüm masal seviyesinde, karakter çifti başına TEK dominant ilişki. 
-Bölüm/cümle seviyesi kullanılmaz. (Mevcut modelin overall_relation_graph 
-çıktısıyla aynı seviye.)
+İlişkiler cümle veya bölüm düzeyinde değil, tüm masal düzeyinde değerlendirilir ve her karakter çiftine tek bir baskın etiket atanır. Bu düzey, sistemin ürettiği genel ilişki grafiğiyle aynıdır.
 
-## K2 — Netleştirme (canlandırma şartı ile etkileşimi)
-Son durum kuralı (K2) ancak çiftin uzlaşması/değişimi metinde FİİLEN 
-canlandırılmışsa uygulanır (örn. "Salih onu affetti" — doğrudan). 
-Mutlu sonda taraflar sadece aynı mekânda birlikte bulunuyor ama 
-aralarında doğrudan uzlaşma sahnesi yoksa, K10 gereği canlandırılan 
-baskın etkileşim etiketlenir (örn. Tüccar-Canavar: tek canlandırılan 
-etkileşim tehdit → negatif).
+## K2 — Dinamik İlişkiler
+Masal boyunca değişen ilişkilerde son durum esas alınır. Bu kural yalnızca uzlaşma metinde fiilen canlandırılmışsa geçerlidir; doğrudan bir uzlaşma sahnesi yoksa, K10 uyarınca metinde canlandırılan baskın etkileşim etiketlenir (örn. Tüccar–Canavar: canlandırılan tek etkileşim tehdit olduğundan negatif).
 
-
-## K3 — İlişki Tanımı (Tanım B: Etkileşim Temelli)
-İki karakter arasında anlamlı olay örgüsü etkileşimi varsa ilişki vardır. 
-Karşılıklı duygusal değer şart değildir. İlişkiler "sevgi/nefret" kadar 
-"fayda sağlama / zarar verme" ekseninde de değerlendirilir.
-- Örn: Hırsız bir hayvanı çalarsa, hayvana kişisel nefreti olmasa da 
-  fail-mağdur ilişkisi NEGATİF'tir. (Adam-Kınalı)
+## K3 — İlişki Tanımı
+İki karakter arasında olay örgüsüne ilişkin anlamlı bir etkileşim bulunması, aralarında ilişki olduğunu gösterir; karşılıklı duygusal değer şart değildir. İlişkiler "sevgi/nefret" ekseninin yanı sıra "fayda/zarar" ekseninde de değerlendirilir. Örn. bir hayvanı çalan kişi ile hayvan arasındaki fail–mağdur ilişkisi negatiftir (Adam–Kınalı).
 
 ## K4 — Karakter Tanımı
 Karakter SAYILIR:
-- Özel ad geçen kişiler
+
+- Özel adıyla geçen kişiler
 - Tutarlı rolde ≥3 cümlede aktif adlandırılmış jenerikler (Anne, Cadı)
-- Kişileştirilmiş varlık (konuşur, hisseder, plan yapar)
+- Kişileştirilmiş varlıklar (konuşur, hisseder, plan yapar)
 
 Karakter SAYILMAZ:
-- Tek-geçişli jenerikler (yoldan geçen yaşlı adam)
+
+- Tek geçişli jenerikler (yoldan geçen yaşlı adam)
 - Kolektif gruplar (kasaba halkı, arkadaşlar grubu — birey değil)
-- Çerçeve hikaye anlatıcıları (ayrı tutulur veya hariç)
+- Çerçeve hikaye anlatıcıları
 - Geçmişte bahsedilen, olay örgüsünde aktif olmayan kişiler (ölmüş baba)
 
-## K5 — Ek netleştirme: ana karakter kapsamı
-Ana karakter = olay örgüsünün merkezindekiler: protagonist(ler) + 
-hikayenin temel gerilimini/duygusal eksenini taşıyanlar:
-- Deuteragonist / baba-evlat gibi merkez ilişkinin diğer ucu (Gepetto)
-- Hikaye boyunca SÜREGELEN tek baskın antagonist (Kötü Kalpli Kraliçe)
-Ana DEĞİL:
-- Yardımcı/akıl veren/sidekick — sürekli sahnede olsa bile (Çekirge, 
-  Mavi Peri, Ceviz'de Anne)
-- Sıralı/geçici engel-antagonistler (art arda gelen ayrı kötüler: 
-  Hansel-Gretel'de Üvey Anne+Cadı, Zehra'da zorba grubu)
-  
-## K6 — Ek netleştirme: notr vs fayda
-Simetrik, duygusal yük taşımayan değişim (para↔mal ticareti) = notr. 
-Ama asimetrik fayda/minnet aktarımı (örn. minnetle verilen hediye, 
-tek tarafın doğrudan yararlandığı durum) = K3 gereği pozitif.
-- Örn: Çiftçi-Yaşlı Amca (eşek alışverişi) → notr.
-- Karşıt: Lustig-Kadın (minnet hediyesi kuzu, Lustig faydalanır) → pozitif.
+## K5 — Ana Karakter Kapsamı
+Ana karakterler, olay örgüsünün merkezindeki protagonistler ile hikayenin temel gerilimini taşıyan kişilerdir. Merkez ilişkinin diğer ucu (örn. Gepetto) ve süregelen tek baskın antagonist (örn. Kötü Kalpli Kraliçe) bu kapsama girer. Sürekli sahnede bulunsa dahi yardımcı karakterler ile sıralı/geçici antagonistler ana karakter sayılmaz.
+
+## K6 — Nötr ve Pozitif Ayrımı
+Duygusal yük taşımayan simetrik değişimler (örn. para–mal ticareti) nötr kabul edilir. Asimetrik fayda veya minnet aktarımı ise K3 uyarınca pozitiftir. Örn. eşek alışverişi (Çiftçi–Yaşlı Amca) nötr; minnetle verilen ve faydalanılan hediye (Lustig–Kadın) pozitiftir.
 
 ## K7 — Kapsam
-Tüm anlamlı karakter çiftleri etiketlenir — sadece protagonist-merkezli 
-değil. Örn: Zehra hikayesinde Begüm-Cansu-Aylin'in kendi aralarındaki 
-pozitif arkadaşlık da etiketlenir.
+Yalnızca protagonist merkezli ilişkiler değil, metindeki tüm anlamlı karakter çiftleri etiketlenir (örn. Zehra'da Begüm–Cansu–Aylin arasındaki olumlu ilişki).
 
 ## K8 — İsimlendirme
-Her karakter için TEK kanonik isim (metinde en sık/en tam geçen form). 
-Örn: "Ali Çoban", "Cahide Hanım". Varyasyonlar gerekiyorsa ayrı bir 
-char_spans alanında tutulur, ana isim tek kalır.
+Her karakter için metinde en sık veya en tam geçen biçim kanonik isim olarak alınır. Varyasyonlar ayrı bir alanda (char_spans) tutulur; ana isim tek kalır.
 
 ## K9 — İlişki Yönü
-Undirected (yönsüz). Çift başına tek etiket. Mevcut sistem yönsüz graf 
-kullandığı için (sorted pair). Gerçekten asimetrik bir ilişki varsa 
-istisna olarak iki kayıt + not.
+İlişkiler yönsüz olarak ele alınır ve her çifte tek etiket atanır (sistem yönsüz graf kullanır). Belirgin asimetri durumunda istisnaen iki kayıt ve açıklama eklenir.
 
-## K10 — Metinde Canlandırılma Şartı
-Sadece metinde fiilen etkileşen / birlikte geçen karakter çiftleri 
-etiketlenir. İma edilen ama sahne/cümle paylaşmayan ilişkiler (örn. aynı 
-evde yaşayan ama doğrudan etkileşmeyen anne-çocuk) etiketlenmez. 
-Gerekçe: Model ilişkiyi metinden çıkarır; canlandırılmamış ilişki 
-modelce tespit edilemez, değerlendirme adil kalır.
+## K10 — Canlandırılma Şartı
+Yalnızca metinde fiilen etkileşen veya birlikte geçen çiftler etiketlenir; ima edilen ancak sahne ya da cümle paylaşmayan ilişkiler etiketlenmez. Gerekçe: Sistem ilişkiyi metinden çıkardığından, canlandırılmamış ilişkiler tespit edilemez; bu ilişkilerin dışlanması ile değerlendirmenin adilliği korunmuş olur.
 
-## K11 — Ek netleştirme: aldatma + zarar
-Aldatma/manipülasyon NEGATİF olması için aldatılan tarafın ZARAR/sömürü 
-görmesi gerekir. Kurbanı zarar görmeyen "iyiniyetli aldatma" yüzey 
-duyguyu izler (genelde pozitif).
-- Örn: Çizmeli Kedi kralı kandırır ama kral memnun + damat kazanır 
-  (zarar yok) → pozitif.
-- Karşıt: Delikanlı Hans'ı yalanla sömürür (zarar) → negatif.
+## K11 — Aldatma ve Zarar
+Aldatma veya manipülasyonun negatif sayılması için aldatılan tarafın zarar görmesi gerekir. Zarar doğurmayan aldatmalarda yüzey duygu esas alınır (genellikle pozitif). Örn. Çizmeli Kedi'de kral zarar görmediğinden ilişki pozitif; Delikanlı'nın Hans'ı sömürmesi negatiftir.

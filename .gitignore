@@ -1,13 +1,53 @@
-# === Üretilen artefaktlar (ÇIKTI; kod/gold DEĞİL) — git'e girmez ===
-# Python derleme
+# =====================================================================
+#  .gitignore — Türkçe Masal Karakter/İlişki Analizi
+#  (mevcut proje/.gitignore'un geliştirilmiş hâli; içine kopyalayabilirsin)
+#  İZLENİR (bilerek): tüm *.py, requirements.txt, README.md,
+#    ANNOTATION_RULES.md, NLP-Hikayeler/ (masallar), test_data/ (gold)
+#    -> veri seti / gold için en alttaki TOGGLE bloğuna bak.
+# =====================================================================
+
+# ---- Python ----
 __pycache__/
 *.pyc
+*.pyo
+*.pyd
+*.egg-info/
+.pytest_cache/
 
-# Çalışma/koşu logları
+# ---- Sanal ortam ----
+venv/
+.venv/
+env/
+ENV/
+
+# ---- IDE / editör / OS ----
+.idea/
+.vscode/
+.DS_Store
+Thumbs.db
+*~
+
+# ---- Ortam değişkenleri / gizli ----
+.env
+*.env
+
+# ---- İndirilen model / cache (spaCy, HuggingFace, torch) — repoda yok, defansif ----
+*.pt
+*.bin
+*.safetensors
+.cache/
+tr_core_news_trf*/
+models/
+
+# ---- Belgeler / sunum (Rapor/Makale/Turnitin repoya KONMAZ) ----
+*.pdf
+*.pptx
+
+# ---- Çalışma / koşu logları ----
 *.log
 *.err
 
-# Üretilen rapor & tablo çıktıları
+# ---- Üretilen rapor & tablo çıktıları (yeniden üretilebilir) ----
 *.tex
 *.html
 /gecen_yil_rapor.md
@@ -15,7 +55,7 @@ __pycache__/
 /metrik_raporu.md
 /proje_kod.md
 
-# Pipeline çıktıları (predictions / metrics) — hepsi yeniden üretilebilir
+# ---- Pipeline çıktıları (predictions / metrics) — yeniden üretilebilir ----
 /predictions*.json
 /per_story_*.json
 /before_metrics*.json
@@ -26,7 +66,10 @@ __pycache__/
 /metrics_*.txt
 /karakterler.txt
 
-# === İZLENİR (bilerek): ===
-#   - tüm *.py (kod), requirements.txt, README.md
-#   - NLP-Hikayeler/  (masal korpusu, girdi verisi)
-#   - test_data/      (gold JSON'lar + ANNOTATION_RULES.md)  -> kök-çapalı (/...) kurallar buraya DOKUNMAZ
+# =====================================================================
+#  TOGGLE — Veri seti ve gold (KARAR SENİN — 4. sorudaki cevabına göre)
+#  Şu an bu iki klasör İZLENİYOR (repoya girer). Masalları/gold'u herkese
+#  açık repoya KOYMAK İSTEMİYORSAN aşağıdaki iki satırın başındaki '# 'i kaldır:
+# =====================================================================
+# NLP-Hikayeler/
+# test_data/annotations/*.json

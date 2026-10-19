@@ -1,0 +1,14 @@
+{
+  "story": "cesurayse",
+  "text_file": "cesurayse.txt",
+  "characters": ["Ayşe", "Zeynep", "Mert", "Demir"],
+  "main_characters": ["Ayşe"],
+  "relations": [
+    {"from": "Ayşe", "to": "Zeynep", "type": "pozitif"},
+    {"from": "Ayşe", "to": "Mert", "type": "pozitif"},
+    {"from": "Zeynep", "to": "Mert", "type": "pozitif"},
+    {"from": "Ayşe", "to": "Demir", "type": "negatif"},
+    {"from": "Zeynep", "to": "Demir", "type": "negatif"},
+    {"from": "Mert", "to": "Demir", "type": "negatif"}
+  ]
+}
