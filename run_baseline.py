@@ -1,24 +1,24 @@
 # -*- coding: utf-8 -*-
 """
-run_baseline.py — GUI'siz batch runner (FAZ 1).
+run_baseline.py — batch runner without the GUI (FAZ 1).
 
-Amaç: mainwindow.Ui_MainWindow.analiz_et'in ÇAĞRI SIRASINI birebir, GUI olmadan
-tekrarlamak ve her masal için karakter + ilişki tahminlerini predictions.json'a
-yazmak.
+Purpose: repeat the CALL ORDER of mainwindow.Ui_MainWindow.analiz_et exactly, without
+the GUI, and write the character + relation predictions for each tale to
+predictions.json.
 
-KISIT: analizClass / iliskiClass / mainwindow / main.py DEĞİŞTİRİLMEZ. Bu dosya
-sadece onları import edip mevcut pipeline'ı sürer. Pipeline mantığı aynen kalır.
+CONSTRAINT: analizClass / iliskiClass / mainwindow / main.py are NOT CHANGED. This file
+only imports them and drives the existing pipeline. The pipeline logic stays the same.
 
-analiz_et akışı (mainwindow.py:587-604):
+analiz_et flow (mainwindow.py:587-604):
     analiz = MetinAnaliz(hikaye_yolu)
-    sirali_gruplar = analiz.tum_islemler()        # -> karakterler.txt yazar (>=5)
+    sirali_gruplar = analiz.tum_islemler()        # -> writes karakterler.txt (>=5)
     self.iliski.story_path = hikaye_yolu
-    self.iliski.load_text()                        # karakterler.txt okur
+    self.iliski.load_text()                        # reads karakterler.txt
     self.iliski.split_sentence_dialog()
     self.iliski.process()                          # -> self.iliski.all_relations
 
-Dominant ilişki: overall_relation_graph (iliskiClass.py:228-237) içindeki
-hesaplama BİREBİR replike edilir (sınıfa dokunmadan, all_relations okunarak).
+Dominant relation: the calculation inside overall_relation_graph (iliskiClass.py:228-237)
+is replicated ONE-TO-ONE (without touching the class, by reading all_relations).
 """
 
 import argparse
@@ -30,17 +30,17 @@ import traceback
 from collections import Counter, defaultdict
 from contextlib import redirect_stdout
 
-# Windows konsolu cp1252 olabilir; Türkçe karakterler için stdout/stderr'i UTF-8'e al.
+# The Windows console may be cp1252; switch stdout/stderr to UTF-8 for Turkish characters.
 for _stream in ("stdout", "stderr"):
     try:
         getattr(sys, _stream).reconfigure(encoding="utf-8")
     except Exception:
         pass
 
-# Bu dosya proje/ içinde. CWD'yi buraya sabitle:
-#  - import'lar (analizClass/iliskiClass) çözülsün
-#  - MetinAnaliz.tum_islemler "karakterler.txt"i CWD'ye yazıyor (hardcoded relative)
-#  - CharacterRelations.load_text "karakterler.txt"i CWD'den okuyor
+# This file is inside proje/. Pin the CWD here so that:
+#  - the imports (analizClass/iliskiClass) resolve
+#  - MetinAnaliz.tum_islemler writes "karakterler.txt" to the CWD (hardcoded relative)
+#  - CharacterRelations.load_text reads "karakterler.txt" from the CWD
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 os.chdir(SCRIPT_DIR)
 sys.path.insert(0, SCRIPT_DIR)
@@ -53,10 +53,10 @@ KARAKTERLER_TXT = os.path.join(SCRIPT_DIR, "karakterler.txt")
 
 
 def map_emotion(label):
-    """savasy etiketlerini gold sözlüğüne (pozitif/negatif/notr) çevir.
+    """Map savasy labels to the gold vocabulary (pozitif/negatif/notr).
 
-    savasy/bert-base-turkish-sentiment-cased pratikte 'positive'/'negative'
-    döndürür. Bilinmeyen etiket olduğu gibi bırakılır (görünür kalsın diye).
+    savasy/bert-base-turkish-sentiment-cased returns 'positive'/'negative'
+    in practice. An unknown label is left as is (so that it stays visible).
     """
     if label is None:
         return "notr"
@@ -67,12 +67,12 @@ def map_emotion(label):
         return "negatif"
     if l.startswith("neu") or l in ("notr", "nötr", "neutral"):
         return "notr"
-    return l  # bilinmeyen -> ham etiketi koru
+    return l  # unknown -> keep the raw label
 
 
 def dominant_from_relations(all_relations):
-    """iliskiClass.overall_relation_graph (satır 228-237) ile BİREBİR aynı:
-    yönsüz sorted-pair + Counter.most_common ile çift başına tek baskın duygu."""
+    """ONE-TO-ONE the same as iliskiClass.overall_relation_graph (lines 228-237):
+    one dominant emotion per pair via undirected sorted pair + Counter.most_common."""
     relations_emotions = defaultdict(list)
     for relation in all_relations:
         c1, c2 = sorted([relation["from"], relation["to"]])
@@ -82,14 +82,14 @@ def dominant_from_relations(all_relations):
     raw_dominant = {}
     for pair, emotions in relations_emotions.items():
         counts = Counter(emotions)
-        dominant_emotion = counts.most_common(1)[0][0]  # graf ile aynı tie-break
+        dominant_emotion = counts.most_common(1)[0][0]  # same tie-break as the graph
         raw_dominant[pair] = dominant_emotion
         out.append({"from": pair[0], "to": pair[1], "type": map_emotion(dominant_emotion)})
     return out, raw_dominant
 
 
 def read_karakterler_txt(path=KARAKTERLER_TXT):
-    """MetinAnaliz'in yazdığı karakterler.txt: 'kanonik,var1,var2,...' (>=5)."""
+    """karakterler.txt written by MetinAnaliz: 'kanonik,var1,var2,...' (>=5)."""
     spans = {}
     if not os.path.exists(path):
         return spans
@@ -102,80 +102,80 @@ def read_karakterler_txt(path=KARAKTERLER_TXT):
 
 
 def reset_iliski(iliski):
-    """GUI'deki geri_git (mainwindow.py:563-576) ile aynı durum sıfırlaması.
-    self.iliski GUI'de bir kez kurulur, masallar arasında resetlenir."""
+    """Same state reset as geri_git in the GUI (mainwindow.py:563-576).
+    self.iliski is built once in the GUI and reset between tales."""
     iliski.story_path = None
     iliski.variation_to_character = {}
     iliski.text = ""
     iliski.segments = []
     iliski.all_relations = []
     iliski.past_sentences = []
-    iliski.is_dialog = False  # defansif (process zaten segment başına set ediyor)
+    iliski.is_dialog = False  # defensive (process already sets it per segment)
 
 
 def run_one(story_path, iliski, verbose_logs=False):
-    """Tek masal için analiz_et akışını tekrarla, tahminleri sözlük olarak döndür."""
+    """Repeat the analiz_et flow for one tale and return the predictions as a dict."""
     story_file = os.path.basename(story_path)
     result = {"story_file": story_file}
 
-    # ---- AŞAMA 1: Karakter tespiti (analiz_et: her masal için YENİ MetinAnaliz) ----
+    # ---- STAGE 1: Character detection (analiz_et: a NEW MetinAnaliz for each tale) ----
     analiz = MetinAnaliz(story_path)
     log1 = io.StringIO()
     with redirect_stdout(log1):
-        sirali = analiz.tum_islemler()  # karakterler.txt yazar; [(isim,sayı),...] (>=5) döner
+        sirali = analiz.tum_islemler()  # writes karakterler.txt; returns [(isim,sayı),...] (>=5)
 
-    raw_detected = sorted(analiz.characters)              # (a) TÜM tespit (filtre öncesi, ham)
-    final_chars = [name for (name, cnt) in sirali]        # (b) ANA (>=5 eşiğini geçen, merged)
+    raw_detected = sorted(analiz.characters)              # (a) ALL detections (before filtering, raw)
+    final_chars = [name for (name, cnt) in sirali]        # (b) MAIN (past the >=5 threshold, merged)
     final_counts = {name: cnt for (name, cnt) in sirali}
-    spans = read_karakterler_txt()                        # >=5 kanonik -> varyasyonlar
+    spans = read_karakterler_txt()                        # >=5 canonical -> variants
 
-    # ---- AŞAMA 2: İlişki çıkarımı (analiz_et: self.iliski yeniden kullanılır) ----
+    # ---- STAGE 2: Relation extraction (analiz_et: self.iliski is reused) ----
     reset_iliski(iliski)
     iliski.story_path = story_path
     log2 = io.StringIO()
     with redirect_stdout(log2):
-        iliski.load_text()              # karakterler.txt (AŞAMA 1 çıktısı) okunur
+        iliski.load_text()              # reads karakterler.txt (STAGE 1 output)
         iliski.split_sentence_dialog()
-        iliski.process()                # self.iliski.all_relations doldurulur
+        iliski.process()                # fills self.iliski.all_relations
 
     relations, raw_dominant = dominant_from_relations(iliski.all_relations)
     raw_label_tally = Counter(r["emotion"] for r in iliski.all_relations)
 
-    # KALEM-4 denetimi: process() çıktısı log2'ye gömülü kalıyordu — classifier
-    # exception uyarılarını görünür kanala çıkar (stderr + _diag).
+    # KALEM-4 audit: the process() output stayed buried in log2; send the classifier
+    # exception warnings to a visible channel (stderr + _diag).
     classifier_uyarilar = [ln.strip() for ln in log2.getvalue().splitlines() if "[uyari]" in ln]
     for ln in classifier_uyarilar:
         print(f"  !! {story_file} | {ln}", file=sys.stderr)
 
-    # Öneri-3 teşhis enstrümantasyonu: çift başına KRONOLOJİK ham etiket dizisi.
-    # Recency/final-state agregasyon deneyleri offline hesaplanabilsin diye yalnız
-    # _diag'a yazılır; SKORLANAN "relations" alanına dokunmaz.
+    # Öneri-3 diagnostic instrumentation: CHRONOLOGICAL raw label sequence per pair.
+    # Written only to _diag so that recency/final-state aggregation experiments can be
+    # computed offline; does not touch the SCORED "relations" field.
     pair_sequences = defaultdict(list)
     for rel in iliski.all_relations:
         c1, c2 = sorted([rel["from"], rel["to"]])
         pair_sequences[(c1, c2)].append(rel["emotion"])
 
-    # ---- Şema (FAZ 1 onayı sonrası): ≥5 merged final liste = modelin KARAKTER tahmini.
-    #      Hem "tüm" hem "ana" metriği bu tek liste üzerinden hesaplanır.
-    #      Ham (filtre öncesi) liste SKORLANMAZ; yalnızca _diag'da referans kalır. ----
-    result["characters"] = final_chars             # ≥5 merged final (geçiş sayısına göre AZALAN sıralı)
-    result["character_counts"] = final_counts      # {kanonik: geçiş_sayısı} — ana = top-N seçimi için
+    # ---- Schema (after FAZ 1 approval): the ≥5 merged final list = the model's CHARACTER prediction.
+    #      Both the "tüm" and the "ana" metric are computed from this single list.
+    #      The raw (pre-filter) list is NOT SCORED; it stays only in _diag as a reference. ----
+    result["characters"] = final_chars             # ≥5 merged final (sorted DESCENDING by mention count)
+    result["character_counts"] = final_counts      # {kanonik: geçiş_sayısı}, used for the main = top-N selection
     result["relations"] = relations                # [{from,to,type}], type ∈ {pozitif,negatif}
 
-    # ---- Tanı/şeffaflık (SKORLANMAZ, sadece referans) ----
+    # ---- Diagnostics/transparency (NOT SCORED, reference only) ----
     result["_diag"] = {
-        "raw_detected": raw_detected,              # (a) ham tespit (filtre öncesi) — SKORLANMAZ
+        "raw_detected": raw_detected,              # (a) raw detections (before filtering), NOT SCORED
         "n_raw_detected": len(raw_detected),
         "n_final_ge5": len(final_chars),
         "final_spans": spans,
-        "threshold": 5,                            # kodda sabit (>=5); adaptif YOK
+        "threshold": 5,                            # fixed in the code (>=5); NOT adaptive
         "n_segments": len(iliski.segments),
         "n_all_relations": len(iliski.all_relations),
         "n_dominant_pairs": len(relations),
         "raw_emotion_labels": dict(raw_label_tally),
-        # Öneri-3: kronolojik ham etiket dizileri (offline recency agregasyonu için)
+        # Öneri-3: chronological raw label sequences (for offline recency aggregation)
         "pair_sequences": {f"{a}||{b}": v for (a, b), v in pair_sequences.items()},
-        # KALEM-4: classifier exception denetim kaydı (masal başına)
+        # KALEM-4: classifier exception audit record (per tale)
         "classifier_uyarilar": classifier_uyarilar,
     }
 
@@ -243,7 +243,7 @@ def main():
     print("\nCharacterRelations bir kez kuruluyor (modeller bir kez yükleniyor)...")
     iliski_log = io.StringIO()
     with redirect_stdout(iliski_log):
-        iliski = CharacterRelations(story_path=None)  # mainwindow.setupUi:9 ile aynı
+        iliski = CharacterRelations(story_path=None)  # same as mainwindow.setupUi:9
     print("  ... CharacterRelations hazır (spaCy tr_core_news_trf + savasy yüklendi).")
 
     predictions = []
@@ -264,7 +264,7 @@ def main():
 
     ok = sum(1 for p in predictions if "error" not in p)
     print(f"\n==== BİTTİ: {ok}/{len(predictions)} masal başarılı -> {out_path} ====")
-    # KALEM-4 denetim sayacı: tüm masallarda classifier exception toplamı
+    # KALEM-4 audit counter: total classifier exceptions over all tales
     toplam_uyari = sum(len(p.get("_diag", {}).get("classifier_uyarilar", []))
                        for p in predictions if "error" not in p)
     print(f"==== KALEM-4 denetim: toplam classifier exception = {toplam_uyari} ====")

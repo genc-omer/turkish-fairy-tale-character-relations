@@ -46,8 +46,8 @@ class CharacterRelations:
             return 512
 
     def _uzun_segmenti_bol(self, metin):
-        """B2: BERT sinirini asan segmenti IC cumle sinirlarindan (.!?…) parcalara
-        ayirir; sondaki noktalamasiz kuyruk da korunur (icerik kaybi yok)."""
+        """B2: splits a segment that exceeds the BERT limit into pieces at INNER sentence
+        boundaries (.!?…); a trailing tail without punctuation is kept too (no content loss)."""
         parcalar = re.findall(r"[^.!?…]+[.!?…]+|[^.!?…]+$", metin)
         parcalar = [p.strip() for p in parcalar if p.strip()]
         return parcalar if parcalar else [metin]
@@ -59,10 +59,10 @@ class CharacterRelations:
                 continue
             self.is_dialog = (sentence.startswith("“") and sentence.endswith("”")) or (sentence.startswith('"') and sentence.endswith('"'))
             temiz = sentence.strip("“”\"")
-            # B2: classifier 512 token sinirini asacak segmenti onceden bol —
-            # eskiden process() icindeki bare-except bu segmentleri SESSIZCE
-            # dusuruyordu (iliskiler kayboluyordu). Alt-cumleler kendi segmenti
-            # gibi islenir; sinir-alti segment davranisi DEGISMEZ.
+            # B2: split a segment in advance if it would exceed the classifier's 512-token limit;
+            # the bare except in process() used to drop these segments SILENTLY
+            # (relations were lost). Sub-sentences are processed as their own
+            # segments; behavior for segments under the limit DOES NOT CHANGE.
             if len(self.tokenizer.encode(temiz)) > self._bert_limiti():
                 for parca in self._uzun_segmenti_bol(temiz):
                     self.segments.append((parca, self.is_dialog))
@@ -76,22 +76,22 @@ class CharacterRelations:
             pattern = r'\b' + re.escape(variation.lower()) + r'(?:[ınunıneoaüie]{0,4})?\b'
             if re.search(pattern, sentence):
                 found.add(character)
-        # S3: set sirasi PYTHONHASHSEED'e bagliydi -> next_chars[0] / zamir-aday
-        # secimi kosudan kosuya degisiyordu; sorted ile deterministik.
+        # S3: set order depended on PYTHONHASHSEED -> the next_chars[0] / pronoun-candidate
+        # choice changed from run to run; sorted makes it deterministic.
         return sorted(found)
 
     def contains_pronoun(self, doc):
         return any(token.pos_ == "PRON" for token in doc)
 
-    # Odak 1: hedef 3. şahıs zamir kümeleri (sayı uyumu için)
+    # Odak 1: target third-person pronoun sets (for number agreement)
     _PRON_SINGULAR = {"o", "onu", "ona", "onun", "onda", "ondan", "onunla", "onunki"}
     _PRON_PLURAL = {"onlar", "onları", "onlara", "onların", "onlarda", "onlardan"}
     _PRON_REFLEX = {"kendi", "kendisi", "kendine", "kendini", "kendinden",
                     "kendisine", "kendisini", "kendileri"}
 
     def pronoun_number(self, doc):
-        """Cümledeki özne/nesne konumundaki hedef zamirin sayısını döndür:
-        'plural' / 'reflexive' / 'singular' / None. Öncelik: çoğul > refleksif > tekil."""
+        """Return the number of the target pronoun in subject/object position in the sentence:
+        'plural' / 'reflexive' / 'singular' / None. Priority: plural > reflexive > singular."""
         has_p = has_r = has_s = False
         for tok in doc:
             if tok.pos_ != "PRON":
@@ -124,18 +124,18 @@ class CharacterRelations:
                 unique_candidates.append(c)
                 seen.add(c)
 
-        # ---- Odak 1: sayı uyumu + BELİRSİZSE ÇÖZME (yalnızca pronoun_number verildiğinde) ----
+        # ---- Odak 1: number agreement + DO NOT RESOLVE IF AMBIGUOUS (only when pronoun_number is given) ----
         if pronoun_number == "plural":
-            # çoğul "onlar*": önceki bağlamdaki 2+ karakter grubu; <2 ise çözme
+            # plural "onlar*": a group of 2+ characters in the previous context; if <2, do not resolve
             return list(unique_candidates) if len(unique_candidates) >= 2 else None
         if pronoun_number == "reflexive":
-            # refleksif "kendi/kendisi": cümlenin kendi öznesine döner → yeni çift üretmez
+            # reflexive "kendi/kendisi": refers back to the sentence's own subject → creates no new pair
             return None
         if pronoun_number == "singular":
-            # tekil: yalnızca TEK aday varsa çöz; belirsizse (≥2) ÇÖZME (precision guard)
+            # singular: resolve only if there is ONE candidate; if ambiguous (≥2) DO NOT RESOLVE (precision guard)
             return unique_candidates[0] if len(unique_candidates) == 1 else None
 
-        # ---- pronoun_number=None: GENEL linking / eski davranış aynen korunur ----
+        # ---- pronoun_number=None: GENERAL linking / old behavior kept as is ----
         if len(unique_candidates) == 1:
             return unique_candidates[0]
         for sentence in reversed(self.past_sentences[-max_lookback:]):
@@ -186,11 +186,11 @@ class CharacterRelations:
         return [sum(data[i:i+window_size])/window_size for i in range(len(data)-window_size+1)]
 
     def _compute_break_points(self):
-        """S3: kirilma noktalari TEK yontemden hesaplanir (moving-average +
-        %15 min-mesafe). draw_emotion_curve ile section_based_graph ayni
-        sinirlari paylasir; section_based_graph'in eski ham-etiket-farki
-        hesabi (list(set(...)) indekslemeli) kaldirildi.
-        Doner: (break_points, smooth_emotion_flow)."""
+        """S3: break points are computed by ONE method (moving average +
+        15% minimum distance). draw_emotion_curve and section_based_graph share
+        the same boundaries; the old raw-label-difference calculation in
+        section_based_graph (indexed via list(set(...))) was removed.
+        Returns: (break_points, smooth_emotion_flow)."""
         label_to_score = {"positive": 1, "neutral": 0, "negative": -1}
         emotion_scores = [label_to_score.get(r["emotion"], 0) for r in self.all_relations]
 
@@ -221,11 +221,11 @@ class CharacterRelations:
             present_characters = self.find_characters(sentence)
 
             if not present_characters and self.contains_pronoun(doc):
-                # Odak 1: zamirin sayısını tespit et, sayı uyumu + belirsizse-çözme uygula
+                # Odak 1: detect the pronoun's number, apply number agreement + do-not-resolve-if-ambiguous
                 pron_num = self.pronoun_number(doc)
                 resolved = self.find_previous_character(pronoun_number=pron_num)
 
-                # belirsiz tekil / refleksif / yetersiz çoğul → çözme, ilişki kurma
+                # ambiguous singular / reflexive / insufficient plural → do not resolve, add no relation
                 if resolved is None:
                     self.past_sentences.append(sentence)
                     continue
@@ -256,12 +256,12 @@ class CharacterRelations:
                     continue
 
             try:
-                # KALEM-4: truncation=True savunma katmani — B2 bolmesinden kacan
-                # patolojik (noktalamasiz) uzun parca olursa istisna yerine kirpilir.
+                # KALEM-4: truncation=True as a safety layer; a pathological (unpunctuated) long piece
+                # that escapes the B2 split is truncated instead of raising an exception.
                 emotion = self.classifier(sentence, truncation=True)[0]["label"]
             except Exception as e:
-                # B2/KALEM-4: dar except + ayrintili log (segment no + istisna tipi);
-                # sessiz dusurme yok — denetim sayaci bu satirlari toplar.
+                # B2/KALEM-4: narrow except + detailed log (segment number + exception type);
+                # no silent dropping; the audit counter collects these lines.
                 print(f"[uyari] segment {i} ({len(sentence)} kar) duygu siniflandirma atlandi: {type(e).__name__}: {e}")
                 self.past_sentences.append(sentence)
                 continue
@@ -271,8 +271,8 @@ class CharacterRelations:
             self.past_sentences.append(sentence)
 
             
-    def draw_emotion_curve(self) -> QPixmap:#Giriş gelişme sonuç bölümlerini ayırma ve grafiğini çizme
-        # S3: hesap _compute_break_points'e tasindi (section_based_graph ile ortak)
+    def draw_emotion_curve(self) -> QPixmap:#Split into introduction, development and conclusion sections and draw the graph
+        # S3: calculation moved to _compute_break_points (shared with section_based_graph)
         break_points, smooth_emotion_flow = self._compute_break_points()
 
         fig = plt.figure(figsize=(10, 4))
@@ -348,8 +348,8 @@ class CharacterRelations:
         if n_emotions < 3:
             raise ValueError("Not enough relation data (at least 3 required)")
 
-        # S3: kirilma noktalari duygu egrisiyle AYNI yontemden (moving-average +
-        # min-mesafe) gelir; GUI'de egri cizgileri ile bolum sinirlari artik tutarli.
+        # S3: break points come from the SAME method as the emotion curve (moving average +
+        # minimum distance); in the GUI the curve lines and section boundaries now agree.
         break_points, _ = self._compute_break_points()
 
         section1 = self.all_relations[:break_points[0]]

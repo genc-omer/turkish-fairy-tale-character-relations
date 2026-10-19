@@ -1,28 +1,28 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KARAKTER TESPİTİ — MASAL-BAZLI LaTeX TABLO ÜRETİCİ (OTOMATİK)
-Eski rapordaki Tablo 5.1–5.4 biçiminde, ana karakterler ve tüm karakterler için
-masal-bazlı tablo + skor özeti üretir.
+CHARACTER DETECTION — PER-TALE LaTeX TABLE GENERATOR (AUTOMATIC)
+Produces per-tale tables + score summaries for main characters and all characters,
+in the format of Tables 5.1–5.4 of the old report.
 
-FARK: Bu sürüm sayıları MANUEL doldurmaz — evaluation.py + gold'dan OTOMATİK hesaplar.
-Metodoloji evaluation.py ile BİREBİR aynıdır:
-  - tüm  : sistemin nihai karakter listesi (predictions.characters) vs gold.characters[]
-           head-anchored 1-e-1 eşleştirme.
-  - ana  : final listenin geçiş_sayısı TOP-N'i (N=len(gold.main_characters)) vs
+DIFFERENCE: This version does NOT fill in numbers MANUALLY; it computes them
+AUTOMATICALLY from evaluation.py + gold. The methodology is ONE-TO-ONE with evaluation.py:
+  - all  : the system's final character list (predictions.characters) vs gold.characters[]
+           head-anchored one-to-one matching.
+  - main : TOP-N of the final list by geçiş_sayısı (N=len(gold.main_characters)) vs
            gold.main_characters[]  (top-N proxy).
-  doğru (TP)=eşleşen, fazla (FP)=eşleşmeyen tahmin, eksik (FN)=kaçırılan gold.
-  toplam = doğru + eksik (otomatik).
+  doğru (TP)=matched, fazla (FP)=unmatched prediction, eksik (FN)=missed gold.
+  toplam = doğru + eksik (automatic).
 
-NOT (ana karakter): top-N proxy olduğundan çoğu masalda fazla=eksik ve P=R=F1 çıkar;
-bu normaldir/dürüsttür (bkz. eski rapor metodolojisi).
+NOTE (main characters): since this is a top-N proxy, most tales get fazla=eksik and P=R=F1;
+this is normal/honest (see the old report's methodology).
 
-KULLANIM:
-    python karakter_tablolari.py                         # varsayılan predictions_after_t4.json
+USAGE:
+    python karakter_tablolari.py                         # default predictions_after_t4.json
     python karakter_tablolari.py > tablolar.tex
     python karakter_tablolari.py --predictions predictions_after_odak1.json
-    python karakter_tablolari.py --dump-json per_story_sonuc.json   # ara sayıları da yazar
-LaTeX'te gereken: \\usepackage{float}  (tablolar [H] ile yerleştiriliyor)
+    python karakter_tablolari.py --dump-json per_story_sonuc.json   # also writes the intermediate numbers
+Needed in LaTeX: \\usepackage{float}  (tables are placed with [H])
 """
 
 import argparse
@@ -32,9 +32,9 @@ import sys
 
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
-import evaluation as E  # aynı değerlendirme çerçevesi (head-anchored eşleştirme, top-N)
+import evaluation as E  # same evaluation framework (head-anchored matching, top-N)
 
-# masal dosyası (normalize anahtar) -> görünen ad
+# tale file (normalized key) -> display name
 NAMES = {
     "balikci": "Balıkçı", "ceviz": "Ceviz", "cirkinprens": "Çirkin Prens",
     "cizmelikedin": "Çizmeli Kedi", "esekokuz": "Eşek Öküz", "gumusayn": "Gümüş Ay",
@@ -54,7 +54,7 @@ def display_name(pred, gold):
     return NAMES.get(k) or gold.get("story") or k
 
 
-# ===================== LaTeX biçimlendirme (senin kodun, korundu) =====================
+# ===================== LaTeX formatting (your code, kept) =====================
 def prf(tp, fp, fn):
     p = tp / (tp + fp) if (tp + fp) else 0.0
     r = tp / (tp + fn) if (tp + fn) else 0.0
@@ -63,7 +63,7 @@ def prf(tp, fp, fn):
 
 
 def vir(x, n=3):
-    """Türkçe ondalık ayracı (nokta -> virgül)."""
+    """Turkish decimal separator (dot -> comma)."""
     return f"{x:.{n}f}".replace(".", ",")
 
 
@@ -119,7 +119,7 @@ def latex_scores(scores, caption, label):
     return "\n".join(sat)
 
 
-# ===================== Otomatik sayı hesaplama (evaluation.py) =====================
+# ===================== Automatic number calculation (evaluation.py) =====================
 def build_per_story(pred_path, ann_dir):
     gi = E.load_gold_index(ann_dir)
     with open(pred_path, encoding="utf-8") as fh:

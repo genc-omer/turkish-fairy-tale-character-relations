@@ -34,16 +34,16 @@ class MetinAnaliz:
         "nin", "nin", "nın", "nun", "nün", "ki", "mı", "mi", "mu", "mü","içi","ses",
         "ya", "ya da", "ya da", "ya da", "ya da", "ya da", "ya da", "ya da","ben", "sen", "o","ora","bura","şura","orada","burada","şurada","biri","biz","siz"
         }
-        # Odak 4: BARE (tek-kelime, tamlamasız) kişileştirilmemiş çevresel/soyut/kolektif
-        # varlıklar — yalnızca dependency (nsubj + insani fiil) dalında elenir.
-        # NOT: güneş/ay/yıldız KASTEN dışarıda — masalda kişileştirilmiş gök cismi
-        #      karakter olabilir (Kamer gold'unda Güneş ve Yıldız gerçek karakterdir).
+        # Odak 4: BARE (single-word, no compound) non-personified environmental/abstract/collective
+        # entities; removed only in the dependency (nsubj + human verb) branch.
+        # NOTE: güneş/ay/yıldız (sun/moon/star) are left out ON PURPOSE; in a tale a personified
+        #      celestial body can be a character (in the Kamer gold, Güneş and Yıldız are real characters).
         self.non_karakter = {
-            # çevresel / doğa olayları / soyut
+            # environmental / natural phenomena / abstract
             "fırtına", "rüzgar", "rüzgâr", "yağmur", "kar", "dolu", "sis", "bulut",
             "gök", "gökyüzü", "zaman", "gece", "gündüz", "sabah", "akşam", "mevsim",
             "ses", "ışık", "gölge", "rüya", "kader", "ölüm",
-            # kolektif gruplar (birey değil)
+            # collective groups (not individuals)
             "insanlar", "herkes", "kasabalılar", "köylüler", "halk", "bayanlar",
             "beyler", "saraydakiler", "askerler", "çocuklar", "kuşlar", "hayvanlar",
         }
@@ -54,10 +54,10 @@ class MetinAnaliz:
 
 
     def text_preprocess(self,text):
-        text = text.replace("’", "'")  # ’ işaretini ' dönüştür
-        text = text.replace("“", '"')  #  “ işaretini " dönüştür
-        text = text.replace("”", '"')  #  ” işaretini " dönüştür
-        text = re.sub(r"'(\s+)", "'", text)  # kesme işaretii sonrası boşluk varsa at
+        text = text.replace("’", "'")  # convert ’ to '
+        text = text.replace("“", '"')  #  convert “ to "
+        text = text.replace("”", '"')  #  convert ” to "
+        text = re.sub(r"'(\s+)", "'", text)  # drop spaces after an apostrophe
         return text
 
     def clean_word(self, word):
@@ -95,32 +95,33 @@ class MetinAnaliz:
         return doc[-1].lemma_.lower()
 
     def _iyelik_sahibi_mi(self, single_word, phrase, head_word):
-        """Over-merge düzeltmesi (P1 — iyelik yutması).
-        'X'in Y' iyelik tamlamasında tek-kelime sahip (X), baş kelime (Y) DEĞİLSE
-        ayrı bir varlıktır. Örn: 'hansel' ∈ 'hansel gretel'in babası' ama hansel
-        SAHİP, baba BAŞ → hansel'i baba grubuna yutturma. Apozisyonda ('ali çoban'
-        ⊇ 'ali') genitive işareti YOKTUR → False döner, mevcut davranış korunur."""
+        """Over-merge fix (P1, possessive absorption).
+        In an 'X'in Y' possessive phrase, a single-word possessor (X) that is NOT
+        the head word (Y) is a separate entity. E.g. 'hansel' ∈ 'hansel gretel'in
+        babası', but hansel is the POSSESSOR and baba is the HEAD, so hansel is not
+        absorbed into the father's group. Apposition ('ali çoban' ⊇ 'ali') has NO
+        genitive marker, so this returns False and the old behavior is kept."""
         toks = phrase.split()
         gen = re.compile(r"'(in|ın|un|ün|nin|nın|nun|nün)$", re.IGNORECASE)
         if not any(gen.search(t) for t in toks):
             return False
         if single_word == head_word or single_word == toks[-1]:
-            return False  # tek-kelime baş kelimenin kendisi → aynı varlık, yut
+            return False  # the single word is the head word itself → same entity, absorb
         return True
 
-    # S4: saf çekim/iyelik eki zinciri (yaklaşık, İZİN VERİCİ). İzin vericilik
-    # güvenli yöndür: uzantı ek sayılırsa veto yok = eski davranış korunur.
+    # S4: a chain of pure inflection/possessive suffixes (approximate, PERMISSIVE). Being permissive
+    # is the safe direction: if the extension counts as a suffix there is no veto = old behavior kept.
     _EK_ZINCIRI = re.compile(
         r"(?:lar|ler|[yns]?[ıiuü]|[yn]?[ae]|[dt][ae]n?|n?[ıiuü]n|nd[ae]n?|yl[ae]|l[ae]|k[iı])+"
     )
 
     def _gecerli_gecis_sayisi(self, pattern, alt, metin, tek_kelime_map, kendi_karakteri):
-        """S4 sayım düzeltmesi (gölge-önek): 'polly' deseninin 'pollyanna',
-        'kral' deseninin 'kraliçe' token'larını sayması engellenir.
-        Kural: eşleşen token = alt + uzantı; uzantı saf ek zinciri DEĞİLSE ve
-        token BAŞKA bir grubun daha uzun tek-kelime varyasyonuyla açıklanıyorsa
-        (en-uzun-bilinen-varyasyon kazanır) eşleşme sayılmaz. Saf ek uzantıları
-        ('oduncunun', 'kızın') muaftır — sahip aynı varlıktır."""
+        """S4 count fix (shadow prefix): stops the 'polly' pattern from counting
+        'pollyanna' tokens and the 'kral' pattern from counting 'kraliçe' tokens.
+        Rule: matched token = alt + extension; if the extension is NOT a pure suffix
+        chain and the token is explained by a longer single-word variant of ANOTHER
+        group (longest known variant wins), the match is not counted. Pure suffix
+        extensions ('oduncunun', 'kızın') are exempt; the owner is the same entity."""
         sayi = 0
         for m in re.finditer(pattern, metin):
             eslesen = m.group(0)
@@ -189,11 +190,11 @@ class MetinAnaliz:
 
             if character1 in character2.split() and not self._iyelik_sahibi_mi(character1, character2, head_word_2):
                 dd=1
-                # Tek kelimelik karakter, diğer karakterin içinde geçiyor
-                # (P1 guard: iyelik tamlamasında sahip-tarafı yutma engellendi)
+                # Single-word character occurs inside the other character
+                # (P1 guard: the possessor side of a possessive phrase is not absorbed)
                 matched_characters.append((j, character2, character_count.get(character2, 0)))
             else:
-                # Çekirdek kelimeler benziyorsa
+                # If the head words are similar
                 if get_close_matches(character1, [head_word_2], cutoff=0.817):
                     matched_characters.append((j, character2, character_count.get(character2, 0)))
 
@@ -205,14 +206,14 @@ class MetinAnaliz:
             character_count[character2] = character_count.get(character2, 0) + character_count.get(character1, 0)
             visited_groups.add(group1_index)
         elif matched_characters and dd==0:
-            # En çok geçen karakteri bul
+            # Find the most frequent character
             most_frequent = max(matched_characters, key=lambda x: x[2])
             j, character2, _ = most_frequent
 
             count1 = character_count.get(character1, 0)
             count2 = character_count.get(character2, 0)
 
-            # Daha az geçen karakterin grubunu, daha çok geçene ekle
+            # Add the less frequent character's group to the more frequent one
             if count1 <= count2:
                 # group1 → group2
                 copy[j]["gruplar"][0].extend(group1["gruplar"][0])
@@ -244,16 +245,16 @@ class MetinAnaliz:
         groups_copy = groups.copy()
         visited_groups = set()
 
-        for i, group1 in enumerate(groups_copy):   # önce tek kelimelik karakterleri kontrol et
+        for i, group1 in enumerate(groups_copy):   # check single-word characters first
             if i in visited_groups:
                 continue
 
             character1 = group1["karakter"]
-            if len(character1.split()) == 1:   # karakter1 tek kelimeden oluşuyorsa
+            if len(character1.split()) == 1:   # if character1 is a single word
                 matched_characters = []
                 self.merge_single_word_character(i, character1, matched_characters, groups_copy, visited_groups, character_count, group1)
 
-        for i, group1 in enumerate(groups_copy):  # normal benzerlik kontrolü
+        for i, group1 in enumerate(groups_copy):  # normal similarity check
             if i in visited_groups:
                 continue
 
@@ -263,13 +264,13 @@ class MetinAnaliz:
 
             self.merge_similar_names_by_threshold(i, character1, groups_copy, visited_groups, character_count, merged_group, all_similars, threshold)
 
-            most_frequently_mentioned_char = max(all_similars, key=lambda x: x[1])[0]  # en çok geçen karakteri seç
+            most_frequently_mentioned_char = max(all_similars, key=lambda x: x[1])[0]  # pick the most frequent character
             total_mention = sum([sayi for _, sayi in all_similars])
 
             new_groups.append({
                 "cekirdek": self.get_head_word(most_frequently_mentioned_char),
                 "karakter": most_frequently_mentioned_char,
-                "gruplar": [sorted(set(merged_group))],   # S3: deterministik sira
+                "gruplar": [sorted(set(merged_group))],   # S3: deterministic order
                 "geçiş_sayısı": total_mention
             })
 
@@ -290,8 +291,8 @@ class MetinAnaliz:
                 if verb.pos_ == "VERB" and verb.lemma_ in self.insansi_eylemler:
                     phrase = self.get_modifier_chain(token)
                     if phrase:
-                        # Odak 4: bare (tek-kelime, tamlamasız) ve kara listedeyse karakter sayma.
-                        # Tamlamalar ("kuyruklu yıldız", "kara fırtına") ETKİLENMEZ → korunur.
+                        # Odak 4: do not count it as a character if it is bare (single word, no compound) and blacklisted.
+                        # Compounds ("kuyruklu yıldız", "kara fırtına") are NOT affected → kept.
                         words = phrase.split()
                         if len(words) == 1 and (phrase in self.non_karakter
                                                 or self.clean_word(token.lemma_) in self.non_karakter):
@@ -308,7 +309,7 @@ class MetinAnaliz:
         alternatives = set()
         for sub_group in group["gruplar"]:
             alternatives.update(sub_group)
-        alternatives = sorted(alternatives, key=lambda x: (-len(x), x))   # S3: esit-uzunluk tie-break
+        alternatives = sorted(alternatives, key=lambda x: (-len(x), x))   # S3: tie-break for equal length
 
         patterns = [r'\b' + re.escape(alt) + r'([a-zçğıöşü]{0,6})?\b' for alt in alternatives]
         tek_kelime_map = tek_kelime_map or {}
@@ -325,7 +326,7 @@ class MetinAnaliz:
                     candidates.append(cleaned)
 
             for alt, pattern in zip(alternatives, patterns):
-                # S4: arama ve sayım gölge-önek vetosundan geçer (_gecerli_gecis_sayisi)
+                # S4: search and count go through the shadow-prefix veto (_gecerli_gecis_sayisi)
                 if any(self._gecerli_gecis_sayisi(pattern, alt, candidate, tek_kelime_map, main_char) > 0
                        for candidate in candidates):
                     self.sentences_by_character[main_char].append(sent_text.strip())
@@ -350,7 +351,7 @@ class MetinAnaliz:
             print(character)
         print("--------------------")
 
-        karakter_listesi = sorted(self.characters)   # S3: set sirasi kosular arasi degisiyordu
+        karakter_listesi = sorted(self.characters)   # S3: set order changed between runs
 
         groups = self.group_similars_by_head_word(karakter_listesi, self.nlp)
 
@@ -361,8 +362,8 @@ class MetinAnaliz:
 
         sentences = list(doc.sents)
 
-        # S4: tüm grupların tek-kelime varyasyon haritası (gölge-önek vetosu için).
-        # 'pollyanna' başka gruptayken 'polly' deseninin onu sayması engellenir.
+        # S4: single-word variant map of all groups (for the shadow-prefix veto).
+        # When 'pollyanna' is in another group, the 'polly' pattern does not count it.
         tek_kelime_map = {}
         for group in groups:
             for sub_group in group["gruplar"]:
@@ -374,7 +375,7 @@ class MetinAnaliz:
             self._assign_sentences_to_groups(doc, group, sentences, tek_kelime_map)
 
 
-        # Yazdırma kısmı
+        # Printing
         print("\nKarakter Geçiş Sayıları:")
         for character, count in self.character_counter.items():
             print(f"{character}: {count}")
@@ -389,10 +390,10 @@ class MetinAnaliz:
             print(f"Grup {i}: Karakter = {group['karakter']} | Geçiş Sayısı = {group['geçiş_sayısı']}")
             print(f"  → Gruplar: {group['gruplar'][0]}")
 
-        # Geçiş sayısına göre azalan şekilde sırala ve yazdır
+        # Sort by mention count (descending) and print
         print("\nBirleştirilmiş Gruplar (Geçiş Sayılarıyla, Sıralı):")
-        # Geçiş eşiği = 4 (diz/knee kriteri; F1-tepesi değil). Eğri: t5→t4 recall +4.6,
-        # 6 karakter geri, yalnız +2 gürültü FP; t3/t2'de gürültü patlıyor.
+        # Mention threshold = 4 (knee criterion, not the F1 peak). Curve: t5→t4 recall +4.6,
+        # 6 characters recovered, only +2 noise FP; at t3/t2 the noise explodes.
         sirali_gruplar = sorted([g for g in groups if g["geçiş_sayısı"] >= 4], key=lambda x: x["geçiş_sayısı"], reverse=True)
         for i, group in enumerate(sirali_gruplar, 1):
             print(f"Karakter = {group['karakter']} | Geçiş Sayısı = {group['geçiş_sayısı']}")
@@ -406,9 +407,9 @@ class MetinAnaliz:
 
         with open("karakterler.txt", "w", encoding="utf-8") as f:
             for group in groups:
-                if group["geçiş_sayısı"] >= 4:   # eşik = 4 (diz kriteri)
+                if group["geçiş_sayısı"] >= 4:   # threshold = 4 (knee criterion)
                     ana_karakter = group["karakter"]
-                    alternatifler = sorted(set(group["gruplar"][0]) - {ana_karakter})   # S3: satir icerigi deterministik
+                    alternatifler = sorted(set(group["gruplar"][0]) - {ana_karakter})   # S3: line content is deterministic
                     satir = ",".join([ana_karakter] + alternatifler)
                     f.write(satir + "\n")    
         

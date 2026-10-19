@@ -1,30 +1,30 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-KARAKTERLER ARASI İLİŞKİ — MASAL-BAZLI LaTeX TABLO ÜRETİCİ (OTOMATİK)
-Eski rapordaki Tablo 5.5–5.9 biçiminde üretir:
-  5.5 Ana Karakterler için Karakterler Arası İlişki Tespiti     (per-story)
-  5.6 Ana ... Skorları                                          (micro/macro)
-  5.7 Tüm Karakterler için Karakterler Arası İlişki Tespiti     (per-story)
-  5.8 Tüm ... Skorları
-  5.9 Her Hikaye İçin Doğru Bulunan Pozitif/Negatif İlişki Oranları
+RELATIONS BETWEEN CHARACTERS — PER-TALE LaTeX TABLE GENERATOR (AUTOMATIC)
+Produces tables in the format of Tables 5.5–5.9 of the old report:
+  5.5 Relation Detection between Main Characters                (per-story)
+  5.6 Main ... Scores                                           (micro/macro)
+  5.7 Relation Detection between All Characters                 (per-story)
+  5.8 All ... Scores
+  5.9 Rate of Correctly Found Positive/Negative Relations per Tale
 
-Sayılar evaluation.py + gold'dan OTOMATİK hesaplanır (manuel doldurma yok).
-Metodoloji evaluation.py ile birebir:
-  - İlişki (edge) = yönsüz çift; valanstan BAĞIMSIZ (çift bulunduysa doğru/TP).
-  - tüm  : tüm gold çiftleri (eval_story.edge).
-  - ana  : iki ucu da gold ANA karaktere düşen çiftler.
-  - poz/neg oranı = doğru valansla bulunan / toplam gold (sınıf C), notr_handling='exclude'.
+The numbers are computed AUTOMATICALLY from evaluation.py + gold (no manual filling).
+The methodology is one-to-one with evaluation.py:
+  - Relation (edge) = undirected pair; INDEPENDENT of valence (correct/TP if the pair is found).
+  - all  : all gold pairs (eval_story.edge).
+  - main : pairs whose both ends fall on gold MAIN characters.
+  - poz/neg rate = found with the correct valence / total gold (class C), notr_handling='exclude'.
 
-GÜRÜLTÜ NOTU: edge-bulma DETERMİNİSTİK değil ama 5-koşuda TP sabit (gürültüsüz);
-poz/neg valansında ~±1-2 çift GPU gürültüsü vardır → Tablo 5.9 tek-snapshot, tezde
-çok-koşu ort±σ ile verilmesi önerilir.
+NOISE NOTE: edge finding is NOT DETERMINISTIC, but TP is stable over 5 runs (no noise);
+poz/neg valence has ~±1-2 pairs of GPU noise → Table 5.9 is a single snapshot; in the
+thesis it should be given as a multi-run mean±σ.
 
-KULLANIM:
+USAGE:
     python iliski_tablolari.py                       # current = predictions_after_t4.json
     python iliski_tablolari.py > iliski_tablolar.tex
     python iliski_tablolari.py --predictions predictions_after_odak1.json
-LaTeX'te gereken: \\usepackage{float}
+Needed in LaTeX: \\usepackage{float}
 """
 
 import argparse
@@ -35,11 +35,11 @@ import sys
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 sys.path.insert(0, SCRIPT_DIR)
 import evaluation as E
-from karakter_tablolari import NAMES, display_name, prf, vir  # ortak yardımcılar
+from karakter_tablolari import NAMES, display_name, prf, vir  # shared helpers
 
 
 def ana_edge_counts(pred, gold):
-    """İki ucu da gold ANA karaktere düşen ilişki çiftleri için TP/FP/FN."""
+    """TP/FP/FN for relation pairs whose both ends fall on gold MAIN characters."""
     spans = gold.get("char_spans", {})
     gc = gold["characters"]
     mains = set(E.norm(c) for c in gold.get("main_characters", []))

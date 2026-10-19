@@ -1,50 +1,50 @@
 # -*- coding: utf-8 -*-
 """
-evaluation.py — FAZ 2: predictions.json'u gold (test_data/annotations/*.json)
-karşısında değerlendirir, "before" metriklerini üretir.
+evaluation.py — FAZ 2: evaluates predictions.json against the gold
+(test_data/annotations/*.json) and produces the "before" metrics.
 
-YALNIZCA okuma yapar: predictions.json + gold JSON'ları. Pipeline dosyalarına
-(analizClass/iliskiClass/...) DOKUNMAZ.
+ONLY reads: predictions.json + the gold JSON files. Does NOT TOUCH the pipeline
+files (analizClass/iliskiClass/...).
 
-═══════════ YÖNTEM (onaylanan eşleme) ═══════════
+═══════════ METHOD (approved matching) ═══════════
 
-DOSYA EŞLEME: ad normalizasyonu (boşluk+altçizgi+uzantı sil, küçük harf) ile
-  prediction.story_file ↔ gold dosya adı / gold['story'] / gold['text_file'].
+FILE MATCHING: by name normalization (remove spaces + underscores + extension,
+  lowercase): prediction.story_file ↔ gold file name / gold['story'] / gold['text_file'].
 
-KARAKTER EŞLEME (1-e-1, maksimum bipartite — Kuhn, deterministik):
-  - Tahmin ismi gold KANONİK veya char_spans VARYASYONLARINA uyarsa aday kenar
-    (norm: küçük harf + boşluk sıkıştır; difflib cutoff=0.8 fallback).
-  - Bir tahmin ↔ en fazla bir gold; bir gold ↔ en fazla bir tahmin.
-  - Eşleşmeyen tahmin = FP karakter; eşleşmeyen gold = FN karakter.
-  - Tüm karakter: tahmin = final ≥5 liste ↔ gold['characters'].
-  - Ana karakter: tahmin = final listenin geçiş_sayısı TOP-N'i (N=len(gold.main),
-    deterministik tie-break: (-sayı, isim)) ↔ gold['main_characters'].
-    NOT (proxy uyarısı): #tahmin == #gold == N olduğunda matematiksel olarak
-    precision@N = recall@N = F1@N. Geçen senenin tam ana-tahmin yöntemi belirsiz
-    olduğundan ana-F1 onların %90,8'iyle BİREBİR kıyaslanamaz; anlamlı sayı
-    before/after DELTASIdır (aynı yöntemle). Mutlak kıyas yaklaşıktır.
+CHARACTER MATCHING (one-to-one, maximum bipartite — Kuhn, deterministic):
+  - A predicted name that fits the gold CANONICAL name or a char_spans VARIANT
+    is a candidate edge (norm: lowercase + collapse spaces; difflib cutoff=0.8 fallback).
+  - One prediction ↔ at most one gold; one gold ↔ at most one prediction.
+  - Unmatched prediction = FP character; unmatched gold = FN character.
+  - All characters: prediction = final ≥5 list ↔ gold['characters'].
+  - Main characters: prediction = TOP-N of the final list by geçiş_sayısı
+    (N=len(gold.main), deterministic tie-break: (-count, name)) ↔ gold['main_characters'].
+    NOTE (proxy warning): when #pred == #gold == N, mathematically
+    precision@N = recall@N = F1@N. Since last year's exact main-prediction method is
+    unclear, main-F1 cannot be compared ONE-TO-ONE with their 90.8%; the meaningful
+    number is the before/after DELTA (same method). The absolute comparison is approximate.
 
-İLİŞKİ DEĞERLENDİRMESİ (karakterle AYNI 1-e-1 haritayı paylaşır):
-  - Tüm-karakter eşleşmesinden matched_map {tahmin_ismi: gold_kanonik}.
-  - Her tahmin ilişkisi (from,to) bu haritadan gold-uzayına çevrilir.
-    * iki uç da eşleşmiş ve farklı gold → geçerli gold-uzayı kenarı (pred valans).
-    * en az bir uç eşleşmemiş (FP karakter) VEYA aynı gold'a düşüyor → FP ilişki.
-    Böylece bir gold karakter N parçaya bölündüyse (üvey anne→3), yalnız 1 parça
-    gold'a eşleşir; diğer parçaların ilişkileri FP ilişki olur (Hansel "20 yanlış").
-  - EDGE F1: gold'daki TÜM çiftler (notr DAHİL) üzerinden; valanstan bağımsız
-    (çift bulunduysa TP). notr_handling'den ETKİLENMEZ.
-  - POZ/NEG P/R/F1 + recall-oranı: notr_handling bayrağına tabi.
-    * exclude (PRIMARY): gold-notr çiftleri poz/neg evreninden çıkarılır
-      (poz/neg etiketlense bile FP sayılmaz) → geçen seneyle (2-sınıf gold) elma-elma.
-    * strict: notr çiftler kalır (yanlış valans → FP).
-    * edge_only: poz/neg için exclude ile aynı (notr yalnız edge F1'e katkı).
+RELATION EVALUATION (shares the SAME one-to-one map as characters):
+  - matched_map {predicted_name: gold_canonical} from the all-character matching.
+  - Each predicted relation (from,to) is mapped into gold space with this map.
+    * both ends matched and different gold → valid gold-space edge (pred valence).
+    * at least one end unmatched (FP character) OR both fall on the same gold → FP relation.
+    So if a gold character is split into N pieces (üvey anne→3), only 1 piece
+    matches the gold; the relations of the other pieces become FP relations (Hansel "20 wrong").
+  - EDGE F1: over ALL gold pairs (INCLUDING notr); independent of valence
+    (TP if the pair is found). NOT AFFECTED by notr_handling.
+  - POZ/NEG P/R/F1 + recall rate: depend on the notr_handling flag.
+    * exclude (PRIMARY): gold-notr pairs are removed from the poz/neg universe
+      (not counted as FP even if labeled poz/neg) → apples to apples with last year (2-class gold).
+    * strict: notr pairs stay (wrong valence → FP).
+    * edge_only: same as exclude for poz/neg (notr only contributes to edge F1).
 
-AGREGAT: Micro = TP/FP/FN havuzla, tek P/R/F1. Macro = masal-başı-F1 ortalaması
-  (geçen seneyle aynı). Bir masalda bir poz/neg sınıfı gold'da hiç yoksa macro'da
-  o masal için o sınıf ATLANIR (dokümante).
+AGGREGATE: Micro = pooled TP/FP/FN, a single P/R/F1. Macro = mean of per-tale F1
+  (same as last year). If a poz/neg class does not occur in a tale's gold, that class
+  is SKIPPED for that tale in macro (documented).
 
-recall-oranı (geçen sene 67,1/48,9 ile birebir): havuzlanmış R_C = ΣTP_C/Σgold_C
-  (exclude evreninde). Geçen senenin "51/76" tarzı.
+recall rate (one-to-one with last year's 67.1/48.9): pooled R_C = ΣTP_C/Σgold_C
+  (in the exclude universe). Like last year's "51/76" style.
 """
 
 import argparse
@@ -65,23 +65,23 @@ SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
 DEFAULT_PRED = os.path.join(SCRIPT_DIR, "predictions.json")
 DEFAULT_ANN = os.path.join(SCRIPT_DIR, "test_data", "annotations")
 
-FUZZY_CUTOFF = 0.85          # kural 3: yüksek bulanık benzerlik (sonek/yazım varyantı)
-CONTAIN_MIN = 3              # kural 2 koruması: eşleşen gold-adı ≥3 karakter
-HEAD_CUTOFF = 0.80           # kural 2 head-anchor: pred ile gold-form BAŞ kelime benzerliği eşiği
+FUZZY_CUTOFF = 0.85          # rule 3: high fuzzy similarity (suffix/spelling variant)
+CONTAIN_MIN = 3              # rule 2 guard: matched gold name ≥3 characters
+HEAD_CUTOFF = 0.80           # rule 2 head anchor: threshold for HEAD-word similarity between pred and gold form
 
-_PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)   # Türkçe harfler \w'de korunur
+_PUNCT_RE = re.compile(r"[^\w\s]", re.UNICODE)   # Turkish letters are kept by \w
 
 
-# ───────────────────────── yardımcılar ─────────────────────────
+# ───────────────────────── helpers ─────────────────────────
 
 def norm(s):
-    """küçük harf + noktalama temizle + iç boşlukları daralt."""
+    """lowercase + strip punctuation + collapse inner spaces."""
     s = _PUNCT_RE.sub(" ", str(s).strip().lower())
     return " ".join(s.split())
 
 
 def file_key(name):
-    """Dosya/story adı normalizasyonu: uzantı + boşluk + altçizgi sil, küçük harf."""
+    """File/story name normalization: remove extension + spaces + underscores, lowercase."""
     b = str(name).lower()
     for ext in (".json", ".txt"):
         if b.endswith(ext):
@@ -97,32 +97,32 @@ def prf(tp, fp, fn):
 
 
 def _forms(gold_char, spans_map):
-    """gold kanonik + char_spans varyasyonları (normalize)."""
+    """gold canonical name + char_spans variants (normalized)."""
     return [norm(f) for f in ([gold_char] + list(spans_map.get(gold_char, [])))]
 
 
 def _tier_exact(npred, nforms):
-    """Kural 1: tam eşleşme (normalize sonrası)."""
+    """Rule 1: exact match (after normalization)."""
     return npred in nforms
 
 
 def _head(s):
-    """Türkçe head-final: baş kelime = son token."""
+    """Turkish is head-final: head word = last token."""
     toks = s.split()
     return toks[-1] if toks else s
 
 
 def _head_match(npred, f):
-    """pred ile gold-form BAŞ kelimesi aynı/sonek-varyantı mı.
-    'baba'~'babası' (0.80) ve 'oduncu'~'oduncu' (1.0) kabul;
-    'kral'~'kraliçe' (0.73), 'kızı'~'kral', 'delikanlı'~'babası' RED."""
+    """Is the HEAD word of pred and gold form the same / a suffix variant?
+    'baba'~'babası' (0.80) and 'oduncu'~'oduncu' (1.0) accepted;
+    'kral'~'kraliçe' (0.73), 'kızı'~'kral', 'delikanlı'~'babası' REJECTED."""
     return difflib.SequenceMatcher(None, _head(npred), _head(f)).ratio() >= HEAD_CUTOFF
 
 
 def _tier_contain(npred, nforms):
-    """Kural 2: içerme (çift yönlü substring) + eşleşen gold-adı ≥3 karakter +
-    HEAD-ANCHORED: pred ile gold-form BAŞ kelimesi eşleşmeli. Bu, sahiplik/ön-kelime
-    eşleşmelerini engeller ('hansel gretel'in babası'→Hansel, 'kralın kızı'→Kral)."""
+    """Rule 2: containment (two-way substring) + matched gold name ≥3 characters +
+    HEAD-ANCHORED: the HEAD words of pred and gold form must match. This blocks
+    possessive/leading-word matches ('hansel gretel'in babası'→Hansel, 'kralın kızı'→Kral)."""
     for f in nforms:
         if len(f) >= CONTAIN_MIN and (f in npred or (len(npred) >= CONTAIN_MIN and npred in f)):
             if _head_match(npred, f):
@@ -131,7 +131,7 @@ def _tier_contain(npred, nforms):
 
 
 def _tier_fuzzy(npred, nforms):
-    """Kural 3: yüksek bulanık benzerlik (difflib ≥ 0.85)."""
+    """Rule 3: high fuzzy similarity (difflib ≥ 0.85)."""
     return bool(difflib.get_close_matches(npred, nforms, n=1, cutoff=FUZZY_CUTOFF))
 
 
@@ -139,8 +139,8 @@ _TIERS = (("exact", _tier_exact), ("contain", _tier_contain), ("fuzzy", _tier_fu
 
 
 def _kuhn(free_preds, free_golds, elig):
-    """Maksimum kardinalite bipartite eşleme (Kuhn). free_preds verilen sırada
-    işlenir (deterministik). elig(i, j) -> bool. Döner: {pred_idx: gold_idx}."""
+    """Maximum-cardinality bipartite matching (Kuhn). free_preds are processed in
+    the given order (deterministic). elig(i, j) -> bool. Returns: {pred_idx: gold_idx}."""
     adj = {i: [j for j in free_golds if elig(i, j)] for i in free_preds}
     match_g = {}  # gold_idx -> pred_idx
 
@@ -159,19 +159,19 @@ def _kuhn(free_preds, free_golds, elig):
 
 
 def match_characters(preds, golds, spans_map):
-    """KADEMELİ 1-e-1 eşleme: exact → contain(≥3) → fuzzy(≥0.85).
-    Her kademe önceki eşleşmeleri KİLİTLER (yeniden yönlendirmez) → güçlü kanıt
-    (exact) zayıf kanıttan (contain/fuzzy) önce gelir; böylece 'sülün kız'ın
-    yanlışlıkla 'Sülün Kızın Babası'na takas edilmesi gibi hatalar önlenir.
-    Bir gold N parçaya bölündüyse yine SADECE bir parça eşleşir (TP), diğerleri
-    FP kalır → alias bölünmesinin precision etkisi (Odak 3) korunur.
-    Döner: {pred_idx: (gold_idx, tier)}."""
+    """TIERED one-to-one matching: exact → contain(≥3) → fuzzy(≥0.85).
+    Each tier LOCKS the earlier matches (does not reroute them) → strong evidence
+    (exact) comes before weak evidence (contain/fuzzy); this prevents errors such as
+    'sülün kız' being swapped by mistake to 'Sülün Kızın Babası'.
+    If a gold is split into N pieces, still ONLY one piece matches (TP), the others
+    stay FP → the precision effect of alias splitting (Odak 3) is kept.
+    Returns: {pred_idx: (gold_idx, tier)}."""
     nforms = [_forms(g, spans_map) for g in golds]
     npreds = [norm(p) for p in preds]
     matched = {}
     used_p, used_g = set(), set()
     for tier_name, tier_fn in _TIERS:
-        free_p = [i for i in range(len(preds)) if i not in used_p]   # verilen sıra (sayıya göre azalan)
+        free_p = [i for i in range(len(preds)) if i not in used_p]   # given order (descending by count)
         free_g = [j for j in range(len(golds)) if j not in used_g]
         m = _kuhn(free_p, free_g, lambda i, j: tier_fn(npreds[i], nforms[j]))
         for p, g in m.items():
@@ -185,36 +185,36 @@ def pair_key(a, b):
     return tuple(sorted([norm(a), norm(b)]))
 
 
-# ───────────────────────── tek masal değerlendirme ─────────────────────────
+# ───────────────────────── single-tale evaluation ─────────────────────────
 
 def eval_story(pred, gold):
-    """Bir masal için tüm sayımları döndürür (karakter + ilişki + valans evreni)."""
+    """Returns all counts for one tale (characters + relations + valence universe)."""
     out = {"story_file": pred.get("story_file"), "gold_story": gold.get("story")}
 
-    pred_chars = list(pred.get("characters", []))          # ≥5 final (sayıya göre azalan)
+    pred_chars = list(pred.get("characters", []))          # ≥5 final (descending by count)
     counts = pred.get("character_counts", {}) or {}
     gold_chars = list(gold.get("characters", []))
     gold_main = list(gold.get("main_characters", []))
     spans = gold.get("char_spans", {}) or {}
 
-    # ---- TÜM KARAKTER ----
+    # ---- ALL CHARACTERS ----
     p2g = match_characters(pred_chars, gold_chars, spans)   # {pred_idx:(gold_idx,tier)}
     tp_all = len(p2g)
     fp_all = len(pred_chars) - tp_all
     fn_all = len(gold_chars) - tp_all
     out["char_all"] = {"tp": tp_all, "fp": fp_all, "fn": fn_all}
-    # ilişki için matched_map: tahmin_ismi -> gold_kanonik (TÜM eşleşmesinden)
+    # matched_map for relations: predicted_name -> gold_canonical (from the ALL matching)
     matched_map = {pred_chars[i]: gold_chars[g] for i, (g, _t) in p2g.items()}
-    # eşleşme detayları (sağlık kontrolü için)
+    # match details (for sanity checks)
     out["matches"] = [{"pred": pred_chars[i], "gold": gold_chars[g], "tier": t}
                       for i, (g, t) in sorted(p2g.items())]
     matched_gold = {g for (g, _t) in p2g.values()}
     out["fp_chars"] = [pred_chars[i] for i in range(len(pred_chars)) if i not in p2g]
     out["fn_chars"] = [gold_chars[j] for j in range(len(gold_chars)) if j not in matched_gold]
 
-    # ---- ANA KARAKTER (top-N proxy) ----
+    # ---- MAIN CHARACTERS (top-N proxy) ----
     N = len(gold_main)
-    # deterministik: sayıya göre azalan, eşitlikte isim artan; final liste zaten azalan
+    # deterministic: descending by count, ascending by name on ties; the final list is already descending
     pred_sorted = sorted(pred_chars, key=lambda c: (-counts.get(c, 0), c))
     topN = pred_sorted[:N] if N <= len(pred_sorted) else pred_sorted[:]
     p2g_main = match_characters(topN, gold_main, spans)
@@ -224,13 +224,13 @@ def eval_story(pred, gold):
     out["char_main"] = {"tp": tp_m, "fp": fp_m, "fn": fn_m,
                         "N": N, "n_pred_topN": len(topN)}
 
-    # ---- İLİŞKİ: gold-uzayına çevir ----
+    # ---- RELATIONS: map into gold space ----
     gold_edges = {}                       # pair_key -> gold type (pozitif/negatif/notr)
     for r in gold.get("relations", []):
         gold_edges[pair_key(r["from"], r["to"])] = norm(r["type"])
 
-    pred_edges = {}                       # pair_key -> pred type (gold-uzayı, geçerli)
-    spurious_types = []                   # FP-karakter / self-loop kenarlarının pred valansı
+    pred_edges = {}                       # pair_key -> pred type (gold space, valid)
+    spurious_types = []                   # pred valence of FP-character / self-loop edges
     for r in pred.get("relations", []):
         a = matched_map.get(r["from"])
         b = matched_map.get(r["to"])
@@ -243,30 +243,30 @@ def eval_story(pred, gold):
     gset = set(gold_edges.keys())
     pset = set(pred_edges.keys())
     tp_e = len(gset & pset)
-    fp_e = len(pset - gset) + len(spurious_types)   # gold'da olmayan + FP-karakter kenarları
+    fp_e = len(pset - gset) + len(spurious_types)   # not in gold + FP-character edges
     fn_e = len(gset - pset)
     out["edge"] = {"tp": tp_e, "fp": fp_e, "fn": fn_e,
                    "n_gold_pairs": len(gset), "n_gold_notr": sum(1 for t in gold_edges.values() if t == "notr")}
 
-    # ---- VALANS evreni: (gold_type, pred_type) tuple listesi ----
+    # ---- VALENCE universe: list of (gold_type, pred_type) tuples ----
     universe = []
     for k in (gset | pset):
-        universe.append((gold_edges.get(k), pred_edges.get(k)))   # None = yok
+        universe.append((gold_edges.get(k), pred_edges.get(k)))   # None = missing
     for t in spurious_types:
         universe.append((None, t))                                # pred-only (FP)
     out["valence_universe"] = universe
     return out
 
 
-# ───────────────────────── valans sınıf metrikleri ─────────────────────────
+# ───────────────────────── valence class metrics ─────────────────────────
 
 def class_counts(universe, cls, mode):
-    """Tek sınıf (pozitif/negatif) için bir masaldan TP/FP/FN (notr_handling: mode)."""
+    """TP/FP/FN for one class (pozitif/negatif) in one tale (notr_handling: mode)."""
     tp = fp = fn = 0
     gold_has = 0
     for gold_t, pred_t in universe:
         if mode in ("exclude", "edge_only") and gold_t == "notr":
-            continue                      # poz/neg evreninden çıkar
+            continue                      # remove from the poz/neg universe
         if gold_t == cls:
             gold_has += 1
             if pred_t == cls:
@@ -275,14 +275,14 @@ def class_counts(universe, cls, mode):
                 fn += 1
         else:
             if pred_t == cls:
-                fp += 1                   # gold farklı/yok/notr(strict) ama pred==cls
+                fp += 1                   # gold different/missing/notr(strict) but pred==cls
     return tp, fp, fn, gold_has
 
 
-# ───────────────────────── agregat ─────────────────────────
+# ───────────────────────── aggregate ─────────────────────────
 
 def aggregate(per_story, getter):
-    """getter(story)->(tp,fp,fn). Micro (havuz) + Macro (masal-F1 ort) döndürür."""
+    """getter(story)->(tp,fp,fn). Returns micro (pooled) + macro (mean per-tale F1)."""
     TP = FP = FN = 0
     f1s = []
     for s in per_story:
@@ -297,13 +297,13 @@ def aggregate(per_story, getter):
 
 
 def aggregate_class(per_story, cls, mode):
-    """Poz/neg sınıfı için micro + macro (boş sınıflı masalları macro'da atla)."""
+    """Micro + macro for a poz/neg class (skip tales without that class in macro)."""
     TP = FP = FN = 0
     f1s = []
     for s in per_story:
         tp, fp, fn, gold_has = class_counts(s["valence_universe"], cls, mode)
         TP += tp; FP += fp; FN += fn
-        if gold_has > 0:                  # macro'da yalnız o sınıf gold'da varsa say
+        if gold_has > 0:                  # in macro, count only if the class is in the gold
             _, _, f = prf(tp, fp, fn)
             f1s.append(f)
     micro = prf(TP, FP, FN)
@@ -314,7 +314,7 @@ def aggregate_class(per_story, cls, mode):
             "recall_pay": TP, "recall_payda": TP + FN, "n_story_with_class": len(f1s)}
 
 
-# ───────────────────────── ana ─────────────────────────
+# ───────────────────────── main ─────────────────────────
 
 def load_gold_index(ann_dir):
     idx = {}
@@ -359,7 +359,7 @@ def main():
             continue
         per_story.append(eval_story(pred, gold))
 
-    # agregatlar
+    # aggregates
     agg_all = aggregate(per_story, lambda s: (s["char_all"]["tp"], s["char_all"]["fp"], s["char_all"]["fn"]))
     agg_main = aggregate(per_story, lambda s: (s["char_main"]["tp"], s["char_main"]["fp"], s["char_main"]["fn"]))
     agg_edge = aggregate(per_story, lambda s: (s["edge"]["tp"], s["edge"]["fp"], s["edge"]["fn"]))
@@ -390,7 +390,7 @@ def main():
     with open(args.out_json, "w", encoding="utf-8") as f:
         json.dump(result, f, ensure_ascii=False, indent=2)
 
-    # ── okunabilir tablo ──
+    # ── readable table ──
     L = []
     L.append(f"=== {args.label.upper()} METRİKLERİ — {len(per_story)} masal ===")
     if unmatched:

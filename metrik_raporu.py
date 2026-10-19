@@ -1,16 +1,16 @@
 #!/usr/bin/env python3
 # -*- coding: utf-8 -*-
 """
-METRİK RAPORU — GÖRSEL (HTML + Markdown)
-karakter_tablolari.py + iliski_tablolari.py sayılarını LaTeX yerine OKUNUR/GÖRSEL
-biçimde basar: stilize HTML (tarayıcıda, F1 renk-kodlu) ve GitHub-markdown tablolar.
-Tablo 5.1–5.9'un tamamı + üstte güncel-vs-geçen yıl manşet kartı.
+METRIC REPORT — VISUAL (HTML + Markdown)
+Prints the numbers of karakter_tablolari.py + iliski_tablolari.py in a READABLE/VISUAL
+form instead of LaTeX: styled HTML (in the browser, F1 color-coded) and GitHub Markdown tables.
+All of Tables 5.1–5.9 + a current-vs-last-year headline card at the top.
 
-KULLANIM:
+USAGE:
     python metrik_raporu.py                       # current = predictions_after_t4.json
     python metrik_raporu.py --predictions predictions_after_odak1.json
-    python metrik_raporu.py --out-dir .           # çıktı klasörü
-Çıktı: metrik_raporu.html + metrik_raporu.md
+    python metrik_raporu.py --out-dir .           # output folder
+Output: metrik_raporu.html + metrik_raporu.md
 """
 import argparse, os, sys, html
 SCRIPT_DIR = os.path.dirname(os.path.abspath(__file__))
@@ -20,10 +20,10 @@ import karakter_tablolari as K
 import iliski_tablolari as I
 from karakter_tablolari import prf, vir
 
-GECEN_YIL = {"ana": 0.908, "tum": 0.818, "poz": 0.671, "neg": 0.489}  # yaklaşık referans
+GECEN_YIL = {"ana": 0.908, "tum": 0.818, "poz": 0.671, "neg": 0.489}  # approximate reference
 
 def edge_rows(rows, kume):
-    """[ad,d,fz,ek,toplam,P,R,F1] satırları + (microP,microR,microF1,macroF1)."""
+    """[ad,d,fz,ek,toplam,P,R,F1] rows + (microP,microR,microF1,macroF1)."""
     out=[]; TP=FP=FN=0; f1s=[]
     for r in rows:
         d,fz,ek = r[kume]["dogru"], r[kume]["fazla"], r[kume]["eksik"]
@@ -100,7 +100,7 @@ def build_html(kchar, irows, cfg):
     H.append('<div class="note">⚠️ Geçen yıl referansı <b>yaklaşıktır</b> — farklı/sıkı gold + '
              'top-N ana proxy + katı eşleştirme nedeniyle birebir kıyaslanamaz. Pozitif/negatif '
              'oranlarında ~±1-2 çift GPU gürültü tabanı vardır (edge-bulma deterministik).</div>')
-    # Karakter
+    # Character
     H.append('<h2>Karakter Tespiti (Tablo 5.1–5.4)</h2>')
     ch=["Hikâye","Doğru","Yanlış/Fazla","Eksik","Toplam","Precision","Recall","F1"]
     ar,asc=edge_rows(kchar,"ana"); tr,tsc=edge_rows(kchar,"tum")
@@ -108,7 +108,7 @@ def build_html(kchar, irows, cfg):
     H.append('<p><b>Skorlar (Ana):</b></p>'+h_scores(asc))
     H.append(h_tbl("Tablo 5.3 — Tüm Karakterler için Karakter Tespiti", ch, tr, f1col=7))
     H.append('<p><b>Skorlar (Tüm):</b></p>'+h_scores(tsc))
-    # İlişki
+    # Relation
     H.append('<h2>Karakterler Arası İlişki Tespiti (Tablo 5.5–5.9)</h2>')
     ih=["Hikâye","Doğru","Yanlış/Fazla","Eksik","Toplam","Precision","Recall","F1"]
     iar,iasc=edge_rows(irows,"ana"); itr,itsc=edge_rows(irows,"tum")
@@ -125,7 +125,7 @@ def build_html(kchar, irows, cfg):
     pn.append(["<b>Toplam</b>",f"<b>{pd} / {pt}</b>",f"<b>{nd} / {nt}</b>",f"<b>{pd+nd} / {pt+nt}</b>"])
     pn.append(["<b>Başarı Oranı</b>",f"<b>{vir(pd/pt if pt else 0)}</b>",
                f"<b>{vir(nd/nt if nt else 0)}</b>",f"<b>{vir((pd+nd)/(pt+nt) if pt+nt else 0)}</b>"])
-    # poz/neg tablosunda HTML zaten gömülü -> escape kapalı render
+    # the poz/neg table already contains HTML -> render with escaping off
     s=['<table><caption>Tablo 5.9 — Doğru Bulunan Pozitif ve Negatif İlişki Oranları</caption>',
        '<thead><tr><th>Hikâye</th><th>Pozitif (doğru/toplam)</th><th>Negatif (doğru/toplam)</th><th>Toplam</th></tr></thead><tbody>']
     for row in pn:

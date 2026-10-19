@@ -561,11 +561,11 @@ class Ui_MainWindow(object):
                 self.label.setText(_translate("MainWindow", "Karakterler"))
 
         def geri_git(self):
-                # Geri gitmek için stackedWidget'in indeksini 0 yap
+                # Set the stackedWidget index to 0 to go back
                 self.stackedWidget.setCurrentIndex(0)
-                #grafik alanını temizle
+                #clear the graph area
                 self.IliskiGraphicsView.setScene(None)
-                #listeyi temizle
+                #clear the list
                 self.karakterlerListView.setModel(QtGui.QStandardItemModel())
 
                 self.iliski.story_path = None
@@ -578,9 +578,9 @@ class Ui_MainWindow(object):
         def hikaye_sec(self):
                 dosya_yolu, _ = QtWidgets.QFileDialog.getOpenFileName(
                         None,                           # parent widget
-                        "Hikaye Dosyasını Seç",         # başlık
-                        "",                             # varsayılan dizin
-                        "Metin Dosyaları (*.txt);;Tüm Dosyalar (*)"  # filtre
+                        "Hikaye Dosyasını Seç",         # title
+                        "",                             # default directory
+                        "Metin Dosyaları (*.txt);;Tüm Dosyalar (*)"  # filter
                 )
                 if dosya_yolu:
                         self.hikayeYoluLine.setText(dosya_yolu)
