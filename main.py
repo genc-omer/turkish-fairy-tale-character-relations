@@ -1,11 +1,15 @@
-from mainwindow import Ui_MainWindow
-from PyQt5.QtWidgets import QApplication
 import sys
 
-from PyQt5.QtWidgets import QMainWindow
+from PyQt5.QtWidgets import QApplication, QMainWindow
 
 if __name__ == "__main__":
+    # Create the QApplication before importing the analysis modules.
+    # On Windows, loading them first can make Qt crash with an access
+    # violation when the application object is created.
     app = QApplication(sys.argv)
+
+    from mainwindow import Ui_MainWindow
+
     MainWindow = QMainWindow()
     ui = Ui_MainWindow()
     ui.setupUi(MainWindow)
@@ -19,6 +23,5 @@ if __name__ == "__main__":
     ui.duyguDegisimGrafigiButton.clicked.connect(ui.duygu_degisim_grafigi_goster)
     ui.genelButton.clicked.connect(ui.genel_iliski)
     ui.geriButton.clicked.connect(ui.geri_git)
- 
+
     sys.exit(app.exec_())
-    
